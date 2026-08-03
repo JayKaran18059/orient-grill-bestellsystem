@@ -115,22 +115,26 @@ const options: Options = {
     }
 
     /* ---------- Orientalisches Ornament ---------- */
-    /* Dasselbe Achtstern-Raster wie auf der Schaufenster-Seite,
-       als sehr blasser Hintergrund. */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
-      opacity: 0.45;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='102' height='102' viewBox='0 0 102 102'%3E%3Cg fill='none' stroke='%23d4a95c' stroke-width='1' opacity='0.045' transform='rotate(45 51 51)'%3E%3Crect x='33' y='33' width='36' height='36'/%3E%3Crect x='33' y='33' width='36' height='36' transform='rotate(45 51 51)'/%3E%3Cpath d='M51 15v18M51 69v18M15 51h18M69 51h18'/%3E%3Ccircle cx='51' cy='51' r='4'/%3E%3C/g%3E%3C/svg%3E");
+    /* Dasselbe Achtstern-Raster wie auf der Schaufenster-Seite, als
+       sehr blasser Hintergrund.
+       Bewusst direkt auf dem body statt als eigene ::before-Ebene:
+       Eine solche Ebene müsste vom Inhalt überlagert werden, und die
+       dafür nötige Regel "body > *" hätte auch Auswahlmenüs
+       getroffen. Die hängt Nuxt UI direkt an den body, und ein
+       erzwungenes "position: relative" zerstört ihre schwebende
+       Platzierung — sie rutschen in den Textfluss und überlappen. */
+    body {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='102' height='102' viewBox='0 0 102 102'%3E%3Cg fill='none' stroke='%23d4a95c' stroke-width='1' opacity='0.02' transform='rotate(45 51 51)'%3E%3Crect x='33' y='33' width='36' height='36'/%3E%3Crect x='33' y='33' width='36' height='36' transform='rotate(45 51 51)'/%3E%3Cpath d='M51 15v18M51 69v18M15 51h18M69 51h18'/%3E%3Ccircle cx='51' cy='51' r='4'/%3E%3C/g%3E%3C/svg%3E");
+      background-attachment: fixed;
     }
 
-    /* Inhalt liegt über dem Muster */
-    body > * {
-      position: relative;
-      z-index: 1;
+    /* Auswahlmenüs und Dialoge brauchen einen deckenden Grund,
+       sonst scheint der Inhalt dahinter durch. */
+    [role='listbox'],
+    [role='menu'],
+    [role='dialog'],
+    [data-radix-popper-content-wrapper] > * {
+      background-color: var(--ui-bg-elevated, #191919);
     }
 
     /* ---------- Bildflächen ohne Foto ---------- */
@@ -182,16 +186,32 @@ const options: Options = {
     }
 
     /* ---------- Bewegung ---------- */
-    /* Produktkarten gleiten beim Erscheinen sanft herein. Die
-       Verzögerung staffelt sie, damit es nicht ruckartig wirkt. */
+    /* Speisen gleiten beim Erscheinen sanft herein, leicht gestaffelt.
+     *
+     * Zwei Dinge sind hier wichtig, beide aus Schaden gelernt:
+     *
+     * 1. "backwards" statt "both". Bei "both" bleibt der Endzustand
+     *    der Keyframes am Element kleben — also auch das transform.
+     *    Ein haftendes transform hebt ein Element in eine eigene
+     *    Zeichenebene, und die legte sich über geöffnete
+     *    Auswahlmenüs: Der Text der Bestellübersicht schien mitten
+     *    durch die Zahlungsarten hindurch.
+     *
+     * 2. Nur Produktkarten ansprechen, nicht jedes Kind eines
+     *    Rasters. Die Bestellübersicht an der Kasse ist ebenfalls
+     *    ein Rasterkind und hat mit der Animation nichts zu tun.
+     */
     @keyframes og-auftauchen {
       from { opacity: 0; transform: translateY(14px); }
       to   { opacity: 1; transform: none; }
     }
 
+    /* Genau die Speisekarten treffen: Sie tragen "cursor-pointer".
+       Die Bestellübersicht an der Kasse ist zwar auch ein Rasterkind,
+       aber keine Karte — und bleibt so außen vor. */
     main article,
-    main [class*='grid'] > * {
-      animation: og-auftauchen 0.5s ease-out both;
+    main [class*='grid'] > [class*='cursor-pointer'] {
+      animation: og-auftauchen 0.5s ease-out backwards;
     }
 
     main [class*='grid'] > *:nth-child(1) { animation-delay: 0.02s; }
@@ -200,6 +220,15 @@ const options: Options = {
     main [class*='grid'] > *:nth-child(4) { animation-delay: 0.14s; }
     main [class*='grid'] > *:nth-child(5) { animation-delay: 0.18s; }
     main [class*='grid'] > *:nth-child(6) { animation-delay: 0.22s; }
+
+    /* Zusätzliche Absicherung: Auswahlmenüs und Dialoge schweben
+       über allem, egal was sonst noch eine Zeichenebene aufmacht. */
+    body > div:has(> [role='listbox']),
+    body > div:has(> [role='menu']),
+    body > div:has(> [role='dialog']),
+    body > div:has(> [role='tooltip']) {
+      z-index: 50;
+    }
 
     /* Sanftes Anheben beim Überfahren einer Speise */
     main a[href*='/'] {
