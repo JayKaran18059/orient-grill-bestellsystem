@@ -19,6 +19,18 @@
               {{ productVariant.weightValue }}{{ getWeightLocalizedUnit(productVariant.weightUnit) }}
             </p>
           </div>
+
+          <!-- Wünsche des Gastes: für die Küche das Wichtigste -->
+          <div v-if="line.selectedOptions?.length" class="flex flex-col gap-0.5">
+            <span
+              v-for="option in line.selectedOptions"
+              :key="option.optionId"
+              class="text-xs/4"
+              :class="option.type === 'remove' ? 'text-dimmed' : 'text-secondary'"
+            >
+              {{ option.type === 'remove' ? 'ohne' : '+' }} {{ option.title }}
+            </span>
+          </div>
         </div>
       </NuxtLink>
     </UTooltip>

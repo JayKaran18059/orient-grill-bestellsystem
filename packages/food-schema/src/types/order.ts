@@ -10,6 +10,22 @@ export type DeliveryMethod = z.infer<typeof DeliveryMethodSchema>
 export const TimeTypeSchema = z.enum(['asap', 'scheduled'])
 export type TimeType = z.infer<typeof TimeTypeSchema>
 
+/**
+ * Eine vom Gast getroffene Wahl, festgehalten am Bestellposten.
+ *
+ * Der Titel wird mitgespeichert, damit die Küche die Bestellung auch
+ * dann noch richtig liest, wenn die Speisekarte inzwischen geändert
+ * wurde.
+ */
+export const OrderItemOptionSchema = z.object({
+  groupId: z.string(),
+  optionId: z.string(),
+  title: z.string(),
+  type: z.enum(['remove', 'add']),
+  priceChange: z.number().default(0),
+})
+export type OrderItemOption = z.infer<typeof OrderItemOptionSchema>
+
 export const OrderItemSchema = z.object({
   id: z.string(),
   orderId: z.string(),
@@ -21,6 +37,8 @@ export const OrderItemSchema = z.object({
   quantity: z.number().positive(),
   unitPrice: z.number().nonnegative(),
   totalPrice: z.number().nonnegative(), // quantity × unitPrice
+  /** Abgewählte Zutaten und bestellte Extras */
+  selectedOptions: OrderItemOptionSchema.array().default([]),
 })
 export type OrderItem = z.infer<typeof OrderItemSchema>
 

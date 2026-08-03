@@ -13,12 +13,24 @@
             </p>
             <div class="flex flex-row gap-2 flex-nowrap">
               <div class="shrink-0 text-sm/4 font-medium tracking-tight">
-                {{ optionsStore.formatCurrency(productVariant?.price ?? 0) }} <span class="text-xs">{{ optionsStore.currencySign }}</span>
+                {{ optionsStore.formatCurrency(line.unitPrice) }} <span class="text-xs">{{ optionsStore.currencySign }}</span>
               </div>
               <!-- Ohne hinterlegtes Gewicht stünde hier nur "0g" -->
               <div v-if="productVariant?.weightValue" class="text-sm/4 text-muted font-light">
                 {{ productVariant.weightValue }}{{ getWeightLocalizedUnit(productVariant.weightUnit) }}
               </div>
+            </div>
+
+            <!-- Abgewählte Zutaten und bestellte Extras -->
+            <div v-if="line.selectedOptions?.length" class="flex flex-col gap-0.5">
+              <span
+                v-for="option in line.selectedOptions"
+                :key="option.optionId"
+                class="text-[0.7rem]/3"
+                :class="option.type === 'remove' ? 'text-dimmed' : 'text-secondary'"
+              >
+                {{ option.type === 'remove' ? 'ohne' : '+' }} {{ option.title }}
+              </span>
             </div>
           </div>
         </div>

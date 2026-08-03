@@ -1,4 +1,4 @@
-import type { GatewayAddOrderItemRequest, GatewayAddOrderItemResponse, GatewayCompleteOrderRequest, GatewayCompleteOrderResponse, GatewayCreateOrderResponse, GatewayDecrementOrderItemQuantityRequest, GatewayDecrementOrderItemQuantityResponse, GatewayGetOrderRequest, GatewayGetOrderResponse, GatewayIncrementOrderItemQuantityRequest, GatewayIncrementOrderItemQuantityResponse, GatewayUpdateOrderRequest, GatewayUpdateOrderResponse, Order, OrderItem } from '@nextorders/food-schema'
+import type { GatewayAddOrderItemRequest, GatewayAddOrderItemResponse, GatewayCompleteOrderRequest, GatewayCompleteOrderResponse, GatewayCreateOrderResponse, GatewayDecrementOrderItemQuantityRequest, GatewayDecrementOrderItemQuantityResponse, GatewayGetOrderRequest, GatewayGetOrderResponse, GatewayIncrementOrderItemQuantityRequest, GatewayIncrementOrderItemQuantityResponse, GatewayUpdateOrderRequest, GatewayUpdateOrderResponse, Order, OrderItem, OrderItemOption } from '@nextorders/food-schema'
 import { createId } from '@paralleldrive/cuid2'
 import { handleGetMenu } from './menu'
 
@@ -156,7 +156,7 @@ export function handleCompleteOrder(data: GatewayCompleteOrderRequest['body']): 
   }
 }
 
-export function handleAddOrderItem({ orderId, variantId }: GatewayAddOrderItemRequest['body']): GatewayAddOrderItemResponse {
+export function handleAddOrderItem({ orderId, variantId, selectedOptionIds }: GatewayAddOrderItemRequest['body']): GatewayAddOrderItemResponse {
   const menu = handleGetMenu().result
 
   const category = menu.categories.find((category) => category.products.find((product) => product.variants.find((variant) => variant.id === variantId)))
@@ -174,6 +174,30 @@ export function handleAddOrderItem({ orderId, variantId }: GatewayAddOrderItemRe
     throw new Error('Variant not found')
   }
 
+  // Aus den übergebenen Kennungen die echten Optionen heraussuchen.
+  // Titel und Aufpreis kommen bewusst aus der Speisekarte, nicht vom
+  // Gast — sonst könnte man sich die Extras selbst billiger machen.
+  const selectedOptions: OrderItemOption[] = (selectedOptionIds ?? []).flatMap((optionId) => {
+    for (const group of product.optionGroups ?? []) {
+      const option = group.options.find((o) => o.id === optionId)
+      if (option) {
+        return [{
+          groupId: group.id,
+          optionId: option.id,
+          title: option.title[0]?.value ?? option.id,
+          type: group.type,
+          priceChange: option.priceChange,
+        }]
+      }
+    }
+    // Unbekannte Kennung: stillschweigend verwerfen statt die
+    // ganze Bestellung scheitern zu lassen.
+    return []
+  })
+
+  const aufpreis = selectedOptions.reduce((summe, option) => summe + option.priceChange, 0)
+  const einzelpreis = variant.price + aufpreis
+
   const newItem: OrderItem = {
     variantId,
     orderId,
@@ -183,8 +207,9 @@ export function handleAddOrderItem({ orderId, variantId }: GatewayAddOrderItemRe
     productId: product.id,
     productSlug: product.slug,
     quantity: 1,
-    unitPrice: variant.price,
-    totalPrice: variant.price,
+    unitPrice: einzelpreis,
+    totalPrice: einzelpreis,
+    selectedOptions,
   }
 
   const order = findOrder(orderId)

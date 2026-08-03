@@ -48,6 +48,11 @@
           />
         </div>
 
+        <!-- Zutaten abwählen und Extras dazubestellen -->
+        <div v-if="optionGroups.length" class="mt-6 mb-2">
+          <ProductOptionGroups v-model="selectedOptionIds" :groups="optionGroups" />
+        </div>
+
         <div class="mt-4 min-h-12 flex flex-row gap-4 md:gap-6 items-center justify-between md:justify-start">
           <div class="flex flex-col gap-0.5">
             <ProductOriginalPrice
@@ -57,7 +62,10 @@
             />
 
             <div class="text-2xl/6 font-medium tracking-tight">
-              {{ optionsStore.formatCurrency(selectedVariant?.price ?? 0) }} <span class="text-xl">{{ optionsStore.currencySign }}</span>
+              {{ optionsStore.formatCurrency(preisMitExtras) }} <span class="text-xl">{{ optionsStore.currencySign }}</span>
+            </div>
+            <div v-if="aufpreis > 0" class="text-sm text-dimmed">
+              inkl. {{ optionsStore.formatCurrency(aufpreis) }} {{ optionsStore.currencySign }} für Extras
             </div>
           </div>
 
@@ -77,7 +85,7 @@
                 leadingIcon: 'hidden md:block',
               }"
               class="md:px-6 font-medium"
-              @click="orderStore.add(selectedVariantId)"
+              @click="orderStore.add(selectedVariantId, selectedOptionIds)"
             />
           </template>
         </div>
@@ -190,6 +198,28 @@ const weightValue = computed(() => selectedVariant.value?.weightValue)
 const weightUnit = computed(() => getWeightLocalizedUnit(selectedVariant.value?.weightUnit))
 
 const line = computed(() => orderStore.items.find((l) => l.variantId === selectedVariant.value?.id))
+
+// Zutaten zum Abwählen und Extras zum Dazubestellen
+const optionGroups = computed(() => product.optionGroups ?? [])
+const selectedOptionIds = ref<string[]>([])
+
+/** Aufpreis der gewählten Extras — abgewählte Zutaten kosten nichts */
+const aufpreis = computed(() => {
+  let summe = 0
+  for (const group of optionGroups.value) {
+    if (group.type !== 'add') {
+      continue
+    }
+    for (const option of group.options) {
+      if (selectedOptionIds.value.includes(option.id)) {
+        summe += option.priceChange
+      }
+    }
+  }
+  return summe
+})
+
+const preisMitExtras = computed(() => (selectedVariant.value?.price ?? 0) + aufpreis.value)
 
 const category = menuStore.getCategoryByProductId(product.id)
 

@@ -56,6 +56,37 @@ export const ProductCompositionSchema = z.object({
 })
 export type ProductComposition = z.infer<typeof ProductCompositionSchema>
 
+/**
+ * Eine Wahlmöglichkeit innerhalb einer Gruppe.
+ *
+ * `priceChange` ist der Aufpreis in der Währung des Shops. Bei
+ * abwählbaren Zutaten steht dort 0 — wer die Zwiebeln weglässt,
+ * zahlt schließlich nicht weniger.
+ */
+export const ProductOptionSchema = z.object({
+  id: z.string(),
+  title: LocaleValueSchema.array(),
+  priceChange: z.number().default(0),
+  /** Vorausgewählt — bei enthaltenen Zutaten der Normalfall */
+  isDefault: z.boolean().default(false),
+})
+export type ProductOption = z.infer<typeof ProductOptionSchema>
+
+/**
+ * Eine Gruppe von Wahlmöglichkeiten zu einem Gericht.
+ *
+ * `remove` — enthaltene Zutaten, die der Gast abwählen kann.
+ *   Alle Einträge sind vorausgewählt, Abwählen kostet nichts.
+ * `add` — Extras, die gegen Aufpreis dazukommen.
+ */
+export const ProductOptionGroupSchema = z.object({
+  id: z.string(),
+  title: LocaleValueSchema.array(),
+  type: z.enum(['remove', 'add']),
+  options: ProductOptionSchema.array(),
+})
+export type ProductOptionGroup = z.infer<typeof ProductOptionGroupSchema>
+
 export const ProductSchema = z.object({
   id: z.string(),
   slug: z.string(),
@@ -67,5 +98,7 @@ export const ProductSchema = z.object({
   composition: ProductCompositionSchema.optional(),
   badges: ProductBadgeSchema.array().optional(),
   recommendedProducts: RecommendedProductSchema.array().optional(),
+  /** Zutaten zum Abwählen und Extras zum Dazubestellen */
+  optionGroups: ProductOptionGroupSchema.array().optional(),
 })
 export type Product = z.infer<typeof ProductSchema>

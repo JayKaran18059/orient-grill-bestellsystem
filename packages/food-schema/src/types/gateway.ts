@@ -128,6 +128,12 @@ export const GatewayAddOrderItemRequestSchema = GatewayRequestSchema.extend({
   body: z.object({
     orderId: z.string(),
     variantId: z.string(),
+    /**
+     * Abgewählte Zutaten und gewünschte Extras. Übergeben werden nur
+     * die Kennungen — Titel und Aufpreis holt sich das Backend aus
+     * der Speisekarte, damit der Preis nicht manipulierbar ist.
+     */
+    selectedOptionIds: z.string().array().optional(),
   }),
 })
 export type GatewayAddOrderItemRequest = z.infer<typeof GatewayAddOrderItemRequestSchema>

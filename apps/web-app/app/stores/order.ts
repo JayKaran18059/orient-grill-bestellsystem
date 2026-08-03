@@ -136,7 +136,12 @@ export const useOrderStore = defineStore('order', () => {
     isLoading.value = false
   }
 
-  async function add(variantId: string) {
+  /**
+   * Legt ein Gericht in den Warenkorb.
+   * `selectedOptionIds` sind die abgewählten Zutaten und die
+   * gewünschten Extras.
+   */
+  async function add(variantId: string, selectedOptionIds?: string[]) {
     isLoading.value = true
 
     try {
@@ -144,7 +149,7 @@ export const useOrderStore = defineStore('order', () => {
         '/api/order/add',
         {
           method: 'POST',
-          body: { orderId: id.value, variantId },
+          body: { orderId: id.value, variantId, selectedOptionIds },
         },
       )
 

@@ -1,4 +1,5 @@
 import type { GatewayGetMenuResponse, Menu } from '@nextorders/food-schema'
+import { mitOptionen, optionenBurger, optionenDoener, optionenImbiss, optionenOhneSalat, optionenPizza, optionenSalate } from './data/optionen'
 import { burger } from './data/products/burger'
 import { doener } from './data/products/doener'
 import { doenerbox } from './data/products/doenerbox'
@@ -23,63 +24,63 @@ const categories: Menu['categories'] = [
     slug: 'doener',
     title: [{ locale: 'de', value: 'Döner' }],
     icon: 'i-fluent-emoji-flat:stuffed-flatbread',
-    products: doener,
+    products: mitOptionen(doener, optionenDoener, optionenOhneSalat),
   },
   {
     id: 'tellergerichte',
     slug: 'tellergerichte',
     title: [{ locale: 'de', value: 'Tellergerichte' }],
     icon: 'i-fluent-emoji-flat:shallow-pan-of-food',
-    products: tellergerichte,
+    products: mitOptionen(tellergerichte, optionenDoener, optionenOhneSalat),
   },
   {
     id: 'doenerbox',
     slug: 'doenerbox',
     title: [{ locale: 'de', value: 'Dönerbox' }],
     icon: 'i-fluent-emoji-flat:french-fries',
-    products: doenerbox,
+    products: mitOptionen(doenerbox, optionenDoener, optionenOhneSalat),
   },
   {
     id: 'duerum',
     slug: 'duerum',
     title: [{ locale: 'de', value: 'Dürüm' }],
     icon: 'i-fluent-emoji-flat:burrito',
-    products: duerum,
+    products: mitOptionen(duerum, optionenDoener, optionenOhneSalat),
   },
   {
     id: 'lahmacun',
     slug: 'lahmacun',
     title: [{ locale: 'de', value: 'Lahmacun' }],
     icon: 'i-fluent-emoji-flat:flatbread',
-    products: lahmacun,
+    products: mitOptionen(lahmacun, optionenDoener, optionenOhneSalat),
   },
   {
     id: 'salate',
     slug: 'salate',
     title: [{ locale: 'de', value: 'Salate' }],
     icon: 'i-fluent-emoji-flat:green-salad',
-    products: salate,
+    products: mitOptionen(salate, optionenSalate),
   },
   {
     id: 'burger',
     slug: 'burger',
     title: [{ locale: 'de', value: 'Burger' }],
     icon: 'i-fluent-emoji-flat:hamburger',
-    products: burger,
+    products: mitOptionen(burger, optionenBurger),
   },
   {
     id: 'wurst-schnitzel',
     slug: 'wurst-schnitzel',
     title: [{ locale: 'de', value: 'Wurst & Schnitzel' }],
     icon: 'i-fluent-emoji-flat:hot-dog',
-    products: wurstSchnitzel,
+    products: mitOptionen(wurstSchnitzel, optionenImbiss),
   },
   {
     id: 'pizza',
     slug: 'pizza',
     title: [{ locale: 'de', value: 'Pizza' }],
     icon: 'i-fluent-emoji-flat:pizza',
-    products: pizza,
+    products: mitOptionen(pizza, optionenPizza),
   },
   {
     id: 'getraenke',

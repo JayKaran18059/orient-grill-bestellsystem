@@ -1,4 +1,4 @@
-import type { Product } from '@nextorders/food-schema'
+import type { Product, ProductOptionGroup } from '@nextorders/food-schema'
 
 // Hilfsfunktionen, damit die Speisekarte lesbar bleibt.
 //
@@ -36,6 +36,8 @@ interface GerichtEingabe {
   beschreibung?: string
   /** Preis in Euro, z.B. 7.5 für 7,50 € */
   preis: number
+  /** Zutaten zum Abwählen und Extras, siehe ../optionen.ts */
+  optionen?: ProductOptionGroup[]
 }
 
 /**
@@ -45,7 +47,7 @@ interface GerichtEingabe {
  * Oberfläche zeigt dann einen Platzhalter. Sobald Fotos da sind,
  * hier `images` befüllen.
  */
-export function gericht({ nr, name, beschreibung, preis }: GerichtEingabe): Product {
+export function gericht({ nr, name, beschreibung, preis, optionen }: GerichtEingabe): Product {
   const slug = zuSlug(name)
 
   return {
@@ -57,6 +59,7 @@ export function gericht({ nr, name, beschreibung, preis }: GerichtEingabe): Prod
       : undefined,
     isAvailableForPurchase: true,
     isShownInCatalog: true,
+    optionGroups: optionen,
     variants: [
       {
         id: `${slug}-standard`,
@@ -80,6 +83,8 @@ interface GroessenGerichtEingabe {
   groessen: string[]
   /** Preise in derselben Reihenfolge wie `groessen` */
   preise: number[]
+  /** Zutaten zum Abwählen und Extras, siehe ../optionen.ts */
+  optionen?: ProductOptionGroup[]
 }
 
 /**
@@ -92,6 +97,7 @@ export function gerichtMitGroessen({
   beschreibung,
   groessen,
   preise,
+  optionen,
 }: GroessenGerichtEingabe): Product {
   if (groessen.length !== preise.length) {
     throw new Error(
@@ -110,6 +116,7 @@ export function gerichtMitGroessen({
       : undefined,
     isAvailableForPurchase: true,
     isShownInCatalog: true,
+    optionGroups: optionen,
     variants: groessen.map((groesse, index) => ({
       id: `${slug}-${zuSlug(groesse)}`,
       title: [{ locale: 'de', value: groesse }],
