@@ -23,26 +23,14 @@
       />
     </div>
 
-    <div class="mt-4 flex flex-row gap-1.5 items-center text-sm text-muted">
-      {{ $dict('common.footer.copyright-part-one') }}
-      <UIcon name="i-lucide-heart" class="size-4" />
-      {{ $dict('common.footer.copyright-part-two') }}
-
-      <ULink
-        :to="appConfig.projectUrl"
-        target="_blank"
-        external
-        class="font-medium flex flex-row gap-1 items-center"
-      >
-        <UIcon name="simple-icons:github" class="size-4" />
-        {{ appConfig.projectTitle }}
-      </ULink>
-    </div>
+    <!-- Der Hinweis auf die verwendete Vorlage stand hier bewusst
+         nicht mehr: Die MIT-Lizenz verlangt lediglich, dass der
+         Lizenztext im Quellcode erhalten bleibt (siehe LICENSE), nicht
+         dass er auf der Seite des Kunden erscheint. -->
   </div>
 </template>
 
 <script setup lang="ts">
-const appConfig = useAppConfig()
 const optionsStore = useOptionsStore()
 const channelStore = useChannelStore()
 
