@@ -1,0 +1,5 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm --filter @nextorders/food-schema build && pnpm --filter @nextorders/web-app build && rm -rf .vercel/output && mkdir -p .vercel && cp -r apps/web-app/.vercel/output .vercel/output"
+}

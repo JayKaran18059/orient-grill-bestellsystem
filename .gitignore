@@ -63,3 +63,5 @@ vite.config.*.timestamp-*
 
 ### Types ###
 /typings/
+.vercel
+.env*

@@ -67,6 +67,13 @@ const options: Options = {
       --ui-radius: 0.75rem;
     }
 
+    /* Gold gilt auch im hellen Modus, falls jemand umschaltet.
+       Dort ein dunkleres Gold, damit es auf Weiß lesbar bleibt. */
+    html:not(.dark) {
+      --ui-primary: #a8762c;
+      --ui-secondary: #a8762c;
+    }
+
     /* ---------- Farbwelt ---------- */
     /* Die Oberfläche läuft im dunklen Modus, deshalb dort ansetzen.
        Bewusst \`html.dark\` statt nur \`.dark\`: Die Vorlage setzt
