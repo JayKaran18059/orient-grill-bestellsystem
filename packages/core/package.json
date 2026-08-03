@@ -1,0 +1,22 @@
+{
+  "name": "@nextorders/core",
+  "type": "module",
+  "version": "2.0.0-alpha.2",
+  "private": true,
+  "main": "./nuxt.config.ts",
+  "scripts": {
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@nextorders/food-schema": "workspace:*",
+    "@paralleldrive/cuid2": "catalog:integrations",
+    "@pinia/nuxt": "catalog:integrations",
+    "pinia": "catalog:integrations"
+  },
+  "devDependencies": {
+    "@nuxtjs/i18n": "catalog:dev",
+    "@types/node": "catalog:types",
+    "nuxt": "catalog:dev",
+    "nuxt-auth-utils": "catalog:dev"
+  }
+}

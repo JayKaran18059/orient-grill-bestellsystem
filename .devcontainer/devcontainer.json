@@ -1,0 +1,21 @@
+{
+  "name": "NextOrders Space",
+  "dockerComposeFile": "docker-compose.yaml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/nextorders/${localWorkspaceFolderBasename}",
+  "postCreateCommand": "npm i -g pnpm@latest && pnpm i",
+  "forwardPorts": [5432],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "bradlc.vscode-tailwindcss",
+        "dbaeumer.vscode-eslint",
+        "Vue.volar",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  }
+}

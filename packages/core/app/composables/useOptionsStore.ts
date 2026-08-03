@@ -1,0 +1,128 @@
+import type { LocaleValue, Options } from '@nextorders/food-schema'
+
+const DIGIT_OR_SPACE_RE = /\d|\s/g
+
+export const useOptionsStore = defineStore('options', () => {
+  const selectorTitleValues = ref<Options['selectorTitle']>([])
+  const selectorDescriptionValues = ref<Options['selectorDescription']>()
+  const logoUrl = ref<Options['logoUrl']>()
+  const headLinks = ref<Options['headLinks']>([])
+  const headScripts = ref<Options['headScripts']>([])
+  const headStyles = ref<Options['headStyles']>([])
+  const availableLocales = ref<Options['availableLocales']>([])
+  const currencyCode = ref<Options['currencyCode']>()
+  const countryCode = ref<Options['countryCode']>()
+  const defaultLocale = ref<Options['defaultLocale']>()
+  const addressSuggestEnabled = ref(false)
+  const deliveryZonesEnabled = ref(false)
+  const deliveryZoneNotFoundMessageValues = ref<Options['deliveryZoneNotFoundMessage']>()
+
+  const { locale, locales } = useI18n()
+
+  const selectorTitle = computed(() => getLocaleValue(selectorTitleValues.value))
+  const selectorDescription = computed(() => getLocaleValue(selectorDescriptionValues.value))
+
+  const appLocale = computed(() => locales.value.find((l) => l.code === locale.value))
+  const currencySign = computed<string>(() => getCurrencySymbol())
+  const deliveryZoneNotFoundMessage = computed(() => getLocaleValue(deliveryZoneNotFoundMessageValues.value))
+
+  async function update() {
+    try {
+      const data = await $fetch('/api/options')
+      if (!data) {
+        return
+      }
+
+      selectorTitleValues.value = data.selectorTitle
+      selectorDescriptionValues.value = data.selectorDescription
+      logoUrl.value = data.logoUrl
+      headLinks.value = data.headLinks
+      headScripts.value = data.headScripts
+      headStyles.value = data.headStyles
+      availableLocales.value = data.availableLocales
+      currencyCode.value = data.currencyCode
+      countryCode.value = data.countryCode
+      defaultLocale.value = data.defaultLocale
+      addressSuggestEnabled.value = data.addressSuggestEnabled ?? false
+      deliveryZonesEnabled.value = data.deliveryZonesEnabled ?? false
+      deliveryZoneNotFoundMessageValues.value = data.deliveryZoneNotFoundMessage
+    } catch {
+      // API unavailable, keep default state
+    }
+  }
+
+  function getLocaleValue(values: LocaleValue[] | undefined): string {
+    try {
+      if (!values || !Array.isArray(values)) {
+        return ''
+      }
+
+      const hasCurrentLocale = values.find((n) => n.locale === locale.value)
+      if (!hasCurrentLocale) {
+        return values.find((v) => v.locale === defaultLocale.value)?.value ?? ''
+      }
+
+      return hasCurrentLocale.value
+    } catch {
+      return ''
+    }
+  }
+
+  function formatCurrency(amount: number): string {
+    try {
+      // Nachkommastellen richten sich nach der Währung: Euro braucht
+      // zwei (7,50 statt 7,5), Yen und Rubel keine. Ohne das werden
+      // Beträge wie 7.50 als "7,5" ausgegeben.
+      const fractionDigits = currencyCode.value
+        ? new Intl.NumberFormat('en', {
+          style: 'currency',
+          currency: currencyCode.value,
+        }).resolvedOptions().minimumFractionDigits
+        : undefined
+
+      return new Intl.NumberFormat(appLocale.value?.language, {
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: fractionDigits,
+      }).format(amount)
+    } catch {
+      return amount.toString()
+    }
+  }
+
+  function getCurrencySymbol(): string {
+    try {
+      const formatter = new Intl.NumberFormat(appLocale.value?.language, {
+        style: 'currency',
+        currency: currencyCode.value,
+        currencyDisplay: 'symbol',
+        // Minimize the output of a number - we only need the symbol
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      })
+      // Format zero to get only the currency symbol
+      return formatter.format(0).replace(DIGIT_OR_SPACE_RE, '').trim()
+    } catch {
+      return currencyCode.value ?? ''
+    }
+  }
+
+  return {
+    logoUrl,
+    headLinks,
+    headScripts,
+    headStyles,
+    availableLocales,
+    countryCode,
+    addressSuggestEnabled,
+    deliveryZonesEnabled,
+
+    selectorTitle,
+    selectorDescription,
+    currencySign,
+    deliveryZoneNotFoundMessage,
+
+    update,
+    getLocaleValue,
+    formatCurrency,
+  }
+})

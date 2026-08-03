@@ -1,0 +1,68 @@
+{
+  "name": "@nextorders/food-monorepo",
+  "version": "2.0.0-alpha.2",
+  "private": true,
+  "packageManager": "pnpm@10.32.1",
+  "description": "Modern e-commerce self-hosted platform: clients will be happy to order delicious food!",
+  "author": "Nick Kosarev <hmbanan666@hotmail.com>",
+  "license": "MIT",
+  "homepage": "https://demo.nextorders.space",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nextorders/food.git"
+  },
+  "keywords": [
+    "ecommerce",
+    "ecommerce-platform",
+    "multilingual",
+    "shop",
+    "self-hosted",
+    "website"
+  ],
+  "engines": {
+    "node": ">=24.14.0",
+    "pnpm": ">=10.32.1"
+  },
+  "scripts": {
+    "release": "bumpp --execute=\"pnpm run release:prepare\" --recursive",
+    "release:prepare": "pnpm run build",
+    "build": "pnpm -r run build",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "clean": "pnpm -r run clean",
+    "clean:modules": "pnpm -r run clean:modules && rm -rf node_modules",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test --config e2e/web-app/playwright.config.ts && playwright test --config e2e/web-app-selector/playwright.config.ts",
+    "check:full": "pnpm run lint:fix && pnpm run typecheck && pnpm vitest run && pnpm test:e2e",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "catalog:dev",
+    "@commitlint/cli": "catalog:dev",
+    "@commitlint/config-conventional": "catalog:dev",
+    "@playwright/test": "catalog:test",
+    "@vitest/browser-playwright": "catalog:test",
+    "@vitest/coverage-v8": "catalog:test",
+    "bumpp": "catalog:dev",
+    "eslint": "catalog:dev",
+    "husky": "catalog:dev",
+    "lint-staged": "catalog:dev",
+    "playwright": "catalog:test",
+    "vite": "catalog:dev",
+    "vitest": "catalog:test",
+    "vue-tsc": "catalog:dev"
+  },
+  "lint-staged": {
+    "*.{js,ts,tsx,vue,md,json}": [
+      "eslint --cache --fix"
+    ]
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  }
+}

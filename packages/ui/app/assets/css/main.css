@@ -1,0 +1,21 @@
+@import "tailwindcss";
+@plugin "tailwindcss-motion";
+@import "@nuxt/ui";
+
+@theme static {
+  --font-serif: 'Lora', serif;
+  --font-sans: 'Noto Sans', sans-serif;
+}
+
+:root {
+  --ui-primary: black;
+  --ui-radius: 0.5rem;
+}
+
+h1, h2, h3, h4, h5, h6, .font-serif {
+  font-family: var(--font-serif);
+}
+
+.dark {
+  --ui-primary: white;
+}

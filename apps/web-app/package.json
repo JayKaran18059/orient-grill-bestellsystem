@@ -1,0 +1,26 @@
+{
+  "name": "@nextorders/web-app",
+  "type": "module",
+  "version": "2.0.0-alpha.2",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev --port 3502",
+    "preview": "PORT=3502 nuxt preview",
+    "clean": "rm -rf dist",
+    "clean:modules": "rm -rf .nuxt node_modules",
+    "typecheck": "nuxt typecheck",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@neoconfetti/vue": "catalog:integrations",
+    "@nextorders/core": "workspace:*",
+    "@nextorders/food-schema": "workspace:*",
+    "@nextorders/ui": "workspace:*",
+    "libphonenumber-js": "catalog:integrations"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:types",
+    "nuxt": "catalog:dev"
+  }
+}

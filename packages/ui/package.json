@@ -1,0 +1,26 @@
+{
+  "name": "@nextorders/ui",
+  "type": "module",
+  "version": "2.0.0-alpha.2",
+  "private": true,
+  "main": "./nuxt.config.ts",
+  "scripts": {
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@nextorders/food-schema": "workspace:*",
+    "@nuxt/ui": "catalog:integrations",
+    "@vueuse/core": "catalog:integrations",
+    "@vueuse/nuxt": "catalog:integrations"
+  },
+  "devDependencies": {
+    "@iconify-json/circle-flags": "catalog:dev",
+    "@iconify-json/fluent-emoji-flat": "catalog:dev",
+    "@iconify-json/lucide": "catalog:dev",
+    "@iconify-json/simple-icons": "catalog:dev",
+    "@nuxt/devtools": "catalog:dev",
+    "@nuxtjs/i18n": "catalog:dev",
+    "nuxt": "catalog:dev",
+    "tailwindcss-motion": "catalog:dev"
+  }
+}
