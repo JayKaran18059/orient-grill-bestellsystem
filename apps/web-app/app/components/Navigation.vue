@@ -22,6 +22,12 @@
     </div>
 
     <UNavigationMenu
+      :items="accountMenuItems"
+      orientation="vertical"
+      class="motion-preset-slide-down"
+    />
+
+    <UNavigationMenu
       :items="asideMenuItems"
       orientation="vertical"
       class="motion-preset-slide-down"
@@ -57,6 +63,13 @@ const optionsStore = useOptionsStore()
 const channelStore = useChannelStore()
 const orderStore = useOrderStore()
 const menuStore = useMenuStore()
+const userSession = useUserSession()
+
+const accountMenuItems = computed(() => [
+  userSession.user.value?.customerId
+    ? { label: dict('account.my-account-title'), to: '/konto', icon: 'lucide:user' }
+    : { label: dict('common.login'), to: '/login', icon: 'lucide:user' },
+])
 
 const overlay = useOverlay()
 const modalDeliveryInfo = overlay.create(ModalDeliveryInfo)

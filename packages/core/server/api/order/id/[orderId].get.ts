@@ -1,4 +1,5 @@
 import type { GatewayGetOrderResponse } from '@nextorders/food-schema'
+import { prisma } from '@nextorders/db'
 import { H3Error } from 'h3'
 
 export default defineEventHandler<Promise<GatewayGetOrderResponse['result']>>(async (event) => {
@@ -11,9 +12,17 @@ export default defineEventHandler<Promise<GatewayGetOrderResponse['result']>>(as
       })
     }
 
-    // Guard: check if order belong to user
+    // Guard: check if order belongs to the current session (guest
+    // checkout, same browser) or — kontoweit, auch von einem anderen
+    // Gerät — zum eingeloggten Kunden (nachgewiesen über die
+    // Stempelkarten-Historie, da essence selbst keine Kunden kennt).
     const { user } = await getUserSession(event)
-    if (!user?.completedOrderIds?.includes(orderId)) {
+    const ownsViaSession = !!user?.completedOrderIds?.includes(orderId)
+    const ownsViaAccount = user?.customerId
+      ? !!(await prisma.loyaltyEvent.findFirst({ where: { customerId: user.customerId, orderId } }))
+      : false
+
+    if (!ownsViaSession && !ownsViaAccount) {
       throw createError({
         statusCode: 404,
         message: 'Not found',

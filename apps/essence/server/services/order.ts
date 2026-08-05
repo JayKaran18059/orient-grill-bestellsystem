@@ -68,7 +68,9 @@ function recalculateOrder(order: Order): Order {
   }))
 
   // Total price
-  order.totalPrice = order.items.reduce((total, item) => total + item.totalPrice, 0)
+  const itemsTotal = order.items.reduce((total, item) => total + item.totalPrice, 0)
+  const discountPercent = order.discountPercent ?? 0
+  order.totalPrice = itemsTotal * (1 - discountPercent / 100)
 
   return order
 }
@@ -112,10 +114,16 @@ export function handleUpdateOrder(data: GatewayUpdateOrderRequest['body']): Gate
     throw new Error('Order id is required')
   }
 
-  const order = updateOrder(data.id, data)
+  let order = updateOrder(data.id, data)
   if (!order) {
     throw new Error('Order not found')
   }
+
+  // Wichtig für discountPercent: totalPrice muss neu berechnet werden,
+  // sonst zeigt der Warenkorb den Rabatt erst nach der nächsten
+  // Artikel-Änderung an.
+  order = recalculateOrder(order)
+  orders.set(order.id, order)
 
   return {
     ok: true,

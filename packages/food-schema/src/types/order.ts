@@ -92,6 +92,8 @@ export const OrderSchema = z.object({
   /** Amount of cash that client has to pay if choose cash */
   changeFrom: z.number().nonnegative().optional(),
   totalPrice: z.number().nonnegative(),
+  /** Treuerabatt in Prozent (z.B. 20 für 20 %), angewendet in recalculateOrder */
+  discountPercent: z.number().min(0).max(100).optional(),
 
   /** Client */
   name: z.string(),

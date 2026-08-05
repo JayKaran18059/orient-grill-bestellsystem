@@ -79,6 +79,14 @@
         </div>
       </div>
 
+      <div v-if="loyalty" class="border-t border-default pt-6">
+        <LoyaltyCard
+          :stamp-count="loyalty.stampCount"
+          :stamps-per-reward="loyalty.stampsPerReward"
+          :reward-available="loyalty.rewardAvailable"
+        />
+      </div>
+
       <UButton
         to="/"
         variant="solid"
@@ -101,10 +109,21 @@ definePageMeta({
 const channelStore = useChannelStore()
 const orderStore = useOrderStore()
 const optionsStore = useOptionsStore()
+const userSession = useUserSession()
 
 const route = useRoute()
 
 const order = await orderStore.get(route.query.id?.toString() as string)
+
+interface LoyaltyState {
+  stampCount: number
+  stampsPerReward: number
+  rewardAvailable: boolean
+}
+const loyalty = ref<LoyaltyState | null>(null)
+if (userSession.user.value?.customerId) {
+  loyalty.value = await $fetch('/api/loyalty/me').catch(() => null)
+}
 
 const deliveryAddress = computed<OrderDeliveryAddress | undefined>(() => order?.address.type === 'deliveryAddress' ? order.address : undefined)
 const warehouseId = computed<string | undefined>(() => order?.address.type === 'warehouseAddress' ? order.address.id : undefined)

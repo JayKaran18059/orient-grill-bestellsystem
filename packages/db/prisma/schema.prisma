@@ -1,0 +1,48 @@
+// Kundenkonten und Stempelkarte für das Orient-Grill-Bestellsystem.
+// Bewusst getrennt vom essence-Backend (das bleibt DB-frei) — nur
+// packages/core / apps/web-app greifen hierauf zu.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Customer {
+  id           String  @id @default(cuid())
+  email        String  @unique
+  /// null, wenn nur per Google angemeldet
+  passwordHash String?
+  googleId     String? @unique
+  name         String?
+
+  createdAt DateTime @default(now())
+
+  /// Stempel seit der letzten Belohnung (0–5, bei 6 wird zurückgesetzt)
+  stampCount      Int     @default(0)
+  rewardAvailable Boolean @default(false)
+
+  loyaltyEvents LoyaltyEvent[]
+}
+
+enum LoyaltyEventType {
+  stamp
+  rewardEarned
+  rewardRedeemed
+}
+
+model LoyaltyEvent {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  /// Bestell-ID aus essence — rein informativ, essence kennt diese Tabelle nicht
+  orderId String
+  type    LoyaltyEventType
+
+  createdAt DateTime @default(now())
+
+  @@index([customerId])
+}

@@ -1,3 +1,11 @@
+allowBuilds:
+  '@parcel/watcher': true
+  '@prisma/engines': true
+  esbuild: true
+  prisma: true
+  vue-demi: true
+
+autoInstallPeers: true
 catalogMode: prefer
 
 shamefullyHoist: true
@@ -8,11 +16,9 @@ supportedArchitectures:
   os: [linux, darwin, win32]
 
 trustPolicy: no-downgrade
-
 packages:
   - apps/*
   - packages/*
-
 catalogs:
   dev:
     '@antfu/eslint-config': ^7.7.2
@@ -30,6 +36,7 @@ catalogs:
     lint-staged: ^16.4.0
     nuxt: ^4.4.2
     nuxt-auth-utils: ^0.5.29
+    prisma: ^7.9.1
     tailwindcss-motion: ^1.1.1
     typescript: ^5.9.3
     unbuild: ^3.6.1
@@ -38,9 +45,12 @@ catalogs:
   integrations:
     '@date-fns/tz': ^1.4.1
     '@neoconfetti/vue': ^2.2.1
+    '@neondatabase/serverless': ^1.1.0
     '@nuxt/ui': ^4.5.1
     '@paralleldrive/cuid2': ^3.3.0
     '@pinia/nuxt': ^0.11.3
+    '@prisma/adapter-neon': ^7.9.1
+    '@prisma/client': ^7.9.1
     '@vueuse/core': ^14.2.1
     '@vueuse/nuxt': ^14.2.1
     libphonenumber-js: ^1.12.40
@@ -54,5 +64,3 @@ catalogs:
     vitest: ^4.1.0
   types:
     '@types/node': ^25.5.0
-
-autoInstallPeers: true

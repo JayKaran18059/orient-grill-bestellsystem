@@ -1,0 +1,41 @@
+{
+  "name": "@nextorders/db",
+  "type": "module",
+  "version": "2.0.0-alpha.2",
+  "private": true,
+  "description": "Prisma schema and client for customer accounts and the loyalty stamp card",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "prisma"
+  ],
+  "scripts": {
+    "build": "prisma generate && unbuild",
+    "prepack": "pnpm run build",
+    "clean": "rm -rf dist",
+    "clean:modules": "rm -rf node_modules",
+    "typecheck": "tsc --noEmit --erasableSyntaxOnly",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate deploy",
+    "prisma:migrate:dev": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "catalog:integrations",
+    "@prisma/adapter-neon": "catalog:integrations",
+    "@prisma/client": "catalog:integrations"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:types",
+    "prisma": "catalog:dev",
+    "typescript": "catalog:dev",
+    "unbuild": "catalog:dev"
+  }
+}

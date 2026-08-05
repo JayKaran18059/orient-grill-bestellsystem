@@ -8,6 +8,7 @@ export const useOrderStore = defineStore('order', () => {
   const phone = ref<Order['phone']>()
   const status = ref<Order['status']>()
   const totalPrice = ref<Order['totalPrice']>(0)
+  const discountPercent = ref<Order['discountPercent']>()
   const deliveryMethod = ref<Order['deliveryMethod']>()
   const paymentMethodId = ref<Order['paymentMethodId']>()
   const changeFrom = ref<Order['changeFrom']>()
@@ -27,6 +28,8 @@ export const useOrderStore = defineStore('order', () => {
   const deliveryZoneValid = ref(false)
 
   const isEmpty = computed<boolean>(() => items.value.length === 0)
+  /** Warensumme vor Anwendung eines Treuerabatts, für die Vorher/Nachher-Anzeige im Checkout */
+  const itemsTotalBeforeDiscount = computed<number>(() => items.value.reduce((total, item) => total + item.totalPrice, 0))
   const isValidMinAmount = computed<boolean>(() => deliveryMethod.value === 'deliveryByCourier' && channelStore.deliveryByCourier?.minAmountForDelivery ? channelStore.deliveryByCourier.minAmountForDelivery <= totalPrice.value : true)
   const isValidTotalPrice = computed<boolean>(() => isValidMinAmount.value)
   const isValidDeliveryAddress = computed<boolean>(() => deliveryMethod.value === 'deliveryByCourier' ? address.value?.type === 'deliveryAddress' && !!address.value?.street : true)
@@ -102,6 +105,7 @@ export const useOrderStore = defineStore('order', () => {
       name.value = data.name
       status.value = data.status
       totalPrice.value = data.totalPrice
+      discountPercent.value = data.discountPercent
       deliveryMethod.value = data.deliveryMethod
       paymentMethodId.value = data.paymentMethodId
       changeFrom.value = data.changeFrom
@@ -229,6 +233,7 @@ export const useOrderStore = defineStore('order', () => {
     phone,
     status,
     totalPrice,
+    discountPercent,
     deliveryMethod,
     paymentMethodId,
     changeFrom,
@@ -241,6 +246,7 @@ export const useOrderStore = defineStore('order', () => {
     updatedAt,
 
     isEmpty,
+    itemsTotalBeforeDiscount,
     isValidPhone,
     isValidTotalPrice,
     isValidPickupAddress,

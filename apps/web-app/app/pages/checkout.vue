@@ -46,7 +46,14 @@
             <div class="flex flex-row justify-between text-lg">
               <div>{{ $dict('web-app.checkout.cost.products') }}</div>
               <div class="tracking-tight">
-                {{ optionsStore.formatCurrency(orderStore.totalPrice) }} <span class="text-sm">{{ optionsStore.currencySign }}</span>
+                {{ optionsStore.formatCurrency(orderStore.discountPercent ? orderStore.itemsTotalBeforeDiscount : orderStore.totalPrice) }} <span class="text-sm">{{ optionsStore.currencySign }}</span>
+              </div>
+            </div>
+
+            <div v-if="orderStore.discountPercent" class="flex flex-row justify-between text-lg text-secondary">
+              <div>{{ $dict('web-app.cart.discount') }} (-{{ orderStore.discountPercent }}%)</div>
+              <div class="tracking-tight">
+                -{{ optionsStore.formatCurrency(orderStore.itemsTotalBeforeDiscount - orderStore.totalPrice) }} <span class="text-sm">{{ optionsStore.currencySign }}</span>
               </div>
             </div>
           </div>
