@@ -10,12 +10,15 @@
     :is-first="index === 0"
   />
 
-  <h1 class="mt-18 mb-2 text-3xl md:text-4xl font-semibold">
-    {{ optionsStore.getLocaleValue(channelStore.title) }}
-  </h1>
-  <div class="mb-8">
-    {{ optionsStore.getLocaleValue(channelStore.description) }}
-  </div>
+  <section class="mt-16 md:mt-20 mb-10 max-w-2xl border-t border-default pt-10 md:pt-12">
+    <div class="mb-4 h-px w-12 bg-(--gold-500)" />
+    <h1 class="font-serif mb-3 text-3xl md:text-4xl font-semibold">
+      {{ optionsStore.getLocaleValue(channelStore.title) }}
+    </h1>
+    <p class="text-muted leading-relaxed">
+      {{ optionsStore.getLocaleValue(channelStore.description) }}
+    </p>
+  </section>
 </template>
 
 <script setup lang="ts">

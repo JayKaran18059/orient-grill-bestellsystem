@@ -1,4 +1,4 @@
-import type { Product, ProductOptionGroup } from '@nextorders/food-schema'
+import type { Image, Product, ProductOptionGroup } from '@nextorders/food-schema'
 
 // Hilfsfunktionen, damit die Speisekarte lesbar bleibt.
 //
@@ -28,6 +28,22 @@ function zuSlug(text: string): string {
     .replace(BINDESTRICH_AM_RAND, '')
 }
 
+/** Baut die Bilderliste eines Gerichts — leer, solange kein Foto hinterlegt ist. */
+function bilder(slug: string, bild?: string): Image[] {
+  if (!bild) {
+    return []
+  }
+
+  return [
+    {
+      id: `${slug}-foto`,
+      url: bild,
+      size: 'original',
+      format: 'jpeg',
+    },
+  ]
+}
+
 interface GerichtEingabe {
   /** Nummer auf der Speisekarte, erscheint vor dem Namen */
   nr: number
@@ -38,16 +54,12 @@ interface GerichtEingabe {
   preis: number
   /** Zutaten zum Abwählen und Extras, siehe ../optionen.ts */
   optionen?: ProductOptionGroup[]
+  /** Pfad unter public/, z.B. '/bilder/gerichte/gericht-001.jpg' — ohne Angabe zeigt die Oberfläche einen Platzhalter */
+  bild?: string
 }
 
-/**
- * Ein Gericht mit einem einzigen Preis.
- *
- * Bilder bleiben leer — es gibt noch keine Fotos vom Laden. Die
- * Oberfläche zeigt dann einen Platzhalter. Sobald Fotos da sind,
- * hier `images` befüllen.
- */
-export function gericht({ nr, name, beschreibung, preis, optionen }: GerichtEingabe): Product {
+/** Ein Gericht mit einem einzigen Preis. */
+export function gericht({ nr, name, beschreibung, preis, optionen, bild }: GerichtEingabe): Product {
   const slug = zuSlug(name)
 
   return {
@@ -64,7 +76,7 @@ export function gericht({ nr, name, beschreibung, preis, optionen }: GerichtEing
       {
         id: `${slug}-standard`,
         title: [{ locale: 'de', value: 'Standard' }],
-        images: [],
+        images: bilder(slug, bild),
         weightUnit: 'g',
         weightValue: 0,
         price: preis,
@@ -85,6 +97,8 @@ interface GroessenGerichtEingabe {
   preise: number[]
   /** Zutaten zum Abwählen und Extras, siehe ../optionen.ts */
   optionen?: ProductOptionGroup[]
+  /** Pfad unter public/, z.B. '/bilder/gerichte/gericht-061.jpg' — gilt für alle Größen */
+  bild?: string
 }
 
 /**
@@ -98,6 +112,7 @@ export function gerichtMitGroessen({
   groessen,
   preise,
   optionen,
+  bild,
 }: GroessenGerichtEingabe): Product {
   if (groessen.length !== preise.length) {
     throw new Error(
@@ -120,7 +135,7 @@ export function gerichtMitGroessen({
     variants: groessen.map((groesse, index) => ({
       id: `${slug}-${zuSlug(groesse)}`,
       title: [{ locale: 'de', value: groesse }],
-      images: [],
+      images: bilder(slug, bild),
       weightUnit: 'g' as const,
       weightValue: 0,
       price: preise[index] as number,
