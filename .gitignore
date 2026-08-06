@@ -65,3 +65,9 @@ vite.config.*.timestamp-*
 /typings/
 .vercel
 .env*
+
+# Zugangsdaten, die versehentlich im Projektordner landen
+# (z.B. Downloads aus der Google Cloud Console)
+*.rtf
+client_secret*.json
+*Client ID*

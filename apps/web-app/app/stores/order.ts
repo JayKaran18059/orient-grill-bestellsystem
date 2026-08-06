@@ -201,17 +201,21 @@ export const useOrderStore = defineStore('order', () => {
     }
   }
 
+  /** Eingegebener Gutscheincode, wird beim Abschluss mitgeschickt */
+  const discountCode = ref('')
+
   async function complete(order: Partial<Order>) {
     try {
       const data = await $fetch(
         '/api/order/complete',
         {
           method: 'POST',
-          body: order,
+          body: { ...order, discountCode: discountCode.value || undefined },
         },
       )
 
       await update()
+      discountCode.value = ''
 
       return data
     } catch {
@@ -234,6 +238,7 @@ export const useOrderStore = defineStore('order', () => {
     status,
     totalPrice,
     discountPercent,
+    discountCode,
     deliveryMethod,
     paymentMethodId,
     changeFrom,

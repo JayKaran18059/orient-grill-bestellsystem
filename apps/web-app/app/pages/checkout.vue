@@ -38,6 +38,13 @@
             <FormOrderPayment />
           </div>
 
+          <!-- Gutscheincode nur für Angemeldete: Codes hängen am
+               Konto, ohne Anmeldung gäbe es nichts einzulösen. -->
+          <CheckoutDiscountCode
+            v-if="loggedIn"
+            :order-total="orderStore.itemsTotalBeforeDiscount || orderStore.totalPrice"
+          />
+
           <div class="flex flex-col gap-2">
             <h3 class="text-lg md:text-xl font-semibold">
               {{ $dict('web-app.checkout.total-title') }}
@@ -125,6 +132,7 @@ definePageMeta({
 })
 
 const { dict } = useDictionary()
+const { loggedIn } = useUserSession()
 
 const channelStore = useChannelStore()
 const orderStore = useOrderStore()

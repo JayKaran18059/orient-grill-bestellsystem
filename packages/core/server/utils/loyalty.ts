@@ -1,9 +1,14 @@
 import type { Customer } from '@nextorders/db'
 import { prisma } from '@nextorders/db'
+import { createDiscountCodeForCustomer } from './discountCode'
+import { gutscheinNachricht, sendeEmail } from './email'
 
-/** Nach jeweils 6 Stempeln gibt es eine neue Belohnung. */
-export const STAMPS_PER_REWARD = 6
-export const REWARD_DISCOUNT_PERCENT = 20
+/**
+ * Nach fünf abgeschlossenen Bestellungen ist die Karte voll — die
+ * sechste Bestellung ist die rabattierte.
+ */
+export const STAMPS_PER_REWARD = 5
+export const REWARD_DISCOUNT_PERCENT = 25
 export const REWARD_MIN_ORDER_VALUE = 20
 
 interface LoyaltyState {
@@ -69,5 +74,49 @@ export async function awardStampForOrder(
     prisma.loyaltyEvent.createMany({ data: events }),
   ])
 
+  // Karte voll: Gutscheincode anlegen und zuschicken.
+  //
+  // Bewusst außerhalb der Transaktion — ein hängender E-Mail-Versand
+  // darf die bereits gebuchten Stempel nicht zurückrollen. Und ein
+  // fehlgeschlagener Versand darf die Bestellung nicht scheitern
+  // lassen: Der Code steht dem Gast auch im Konto zur Verfügung.
+  if (rewardJustEarned) {
+    try {
+      await erzeugeUndVersendeGutschein(customerId)
+    } catch (error) {
+      console.error(`[Treue] Gutschein für Kunde ${customerId} fehlgeschlagen:`, error)
+    }
+  }
+
   return { ...state, rewardJustEarned }
+}
+
+async function erzeugeUndVersendeGutschein(customerId: Customer['id']): Promise<void> {
+  const customer = await prisma.customer.findUniqueOrThrow({ where: { id: customerId } })
+  const code = await createDiscountCodeForCustomer(customerId)
+
+  const { public: publicConfig } = useRuntimeConfig()
+  const shopUrl = publicConfig?.siteUrl || 'https://orient-grill-bestellung.vercel.app'
+
+  const { text, html } = gutscheinNachricht({
+    code: code.code,
+    prozent: code.discountPercent,
+    mindestwert: code.minOrderValue,
+    gueltigBis: code.expiresAt,
+    shopUrl,
+  })
+
+  const verschickt = await sendeEmail({
+    an: customer.email,
+    betreff: `Ihr ${code.discountPercent}-%-Gutschein vom Orient Grill`,
+    text,
+    html,
+  })
+
+  if (verschickt) {
+    await prisma.discountCode.update({
+      where: { id: code.id },
+      data: { emailSentAt: new Date() },
+    })
+  }
 }

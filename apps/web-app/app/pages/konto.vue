@@ -82,7 +82,7 @@
         </CheckoutBlock>
       </div>
 
-      <div class="col-span-full md:col-span-5">
+      <div class="col-span-full flex flex-col gap-6 md:col-span-5">
         <CheckoutBlock>
           <template v-if="loyalty">
             <LoyaltyCard
@@ -91,6 +91,12 @@
               :reward-available="loyalty.rewardAvailable"
             />
           </template>
+        </CheckoutBlock>
+
+        <!-- Damit der Gast seinen Code auch findet, wenn die E-Mail
+             im Spam gelandet ist -->
+        <CheckoutBlock>
+          <DiscountCodeList />
         </CheckoutBlock>
       </div>
     </div>

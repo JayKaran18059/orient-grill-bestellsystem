@@ -20,11 +20,41 @@ model Customer {
 
   createdAt DateTime @default(now())
 
-  /// Stempel seit der letzten Belohnung (0–5, bei 6 wird zurückgesetzt)
+  /// Stempel seit der letzten Belohnung (0–4, bei 5 wird zurückgesetzt)
   stampCount      Int     @default(0)
   rewardAvailable Boolean @default(false)
 
-  loyaltyEvents LoyaltyEvent[]
+  loyaltyEvents  LoyaltyEvent[]
+  discountCodes  DiscountCode[]
+}
+
+/// Gutscheincode, der nach fünf Bestellungen erzeugt und per E-Mail
+/// verschickt wird. Der Code selbst ist der Schlüssel — er wird beim
+/// Bestellen eingegeben und danach entwertet.
+model DiscountCode {
+  id         String   @id @default(cuid())
+  /// Der eingebbare Code, z.B. "ORIENT-4K7M-92XQ". Immer Großbuchstaben.
+  code       String   @unique
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  /// Rabatt in Prozent, zum Zeitpunkt der Ausstellung festgehalten —
+  /// eine spätere Änderung der Aktion entwertet alte Codes nicht.
+  discountPercent Int
+  /// Mindestbestellwert in Euro, ebenfalls eingefroren
+  minOrderValue   Int
+
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  /// Gesetzt, sobald der Code verbraucht ist
+  redeemedAt DateTime?
+  /// Bestellung, in der er eingelöst wurde
+  redeemedOrderId String?
+
+  /// Wurde die Benachrichtigung erfolgreich verschickt?
+  emailSentAt DateTime?
+
+  @@index([customerId])
 }
 
 enum LoyaltyEventType {
