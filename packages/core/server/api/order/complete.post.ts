@@ -77,6 +77,11 @@ export default defineEventHandler<Promise<GatewayCompleteOrderResponse['result']
       })
     }
 
+    // Beleg schreiben, bevor irgendetwas anderes passiert. essence hält
+    // die Bestellung ab hier nur im Arbeitsspeicher — der nächste
+    // Neustart würde sie sonst spurlos verschlucken.
+    await speichereBestellung(completedOrder.result, user?.customerId)
+
     // Remove order from session and add it to completed orders.
     // Bestehende Felder (Login-Status: customerId/email/name) bleiben
     // erhalten — nur orderId/completedOrderIds werden aktualisiert.

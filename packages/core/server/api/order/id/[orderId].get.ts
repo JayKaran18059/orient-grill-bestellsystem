@@ -1,5 +1,4 @@
 import type { GatewayGetOrderResponse } from '@nextorders/food-schema'
-import { prisma } from '@nextorders/db'
 import { H3Error } from 'h3'
 
 export default defineEventHandler<Promise<GatewayGetOrderResponse['result']>>(async (event) => {
@@ -14,12 +13,11 @@ export default defineEventHandler<Promise<GatewayGetOrderResponse['result']>>(as
 
     // Guard: check if order belongs to the current session (guest
     // checkout, same browser) or — kontoweit, auch von einem anderen
-    // Gerät — zum eingeloggten Kunden (nachgewiesen über die
-    // Stempelkarten-Historie, da essence selbst keine Kunden kennt).
+    // Gerät — zum eingeloggten Kunden.
     const { user } = await getUserSession(event)
     const ownsViaSession = !!user?.completedOrderIds?.includes(orderId)
     const ownsViaAccount = user?.customerId
-      ? !!(await prisma.loyaltyEvent.findFirst({ where: { customerId: user.customerId, orderId } }))
+      ? await gehoertBestellungZuKunde(orderId, user.customerId)
       : false
 
     if (!ownsViaSession && !ownsViaAccount) {
@@ -29,20 +27,30 @@ export default defineEventHandler<Promise<GatewayGetOrderResponse['result']>>(as
       })
     }
 
+    // essence zuerst fragen: nur dort steht der aktuelle Zustand, falls
+    // die Bestellung seit dem Abschicken weitergelaufen ist.
     const order = await fetchApi({
       type: 'getOrder',
       body: {
         id: orderId,
       },
-    })
-    if (!order?.result) {
+    }).catch(() => null)
+
+    if (order?.result) {
+      return order.result
+    }
+
+    // essence kennt sie nicht mehr — nach einem Neustart der Normalfall.
+    // Dann zählt der gespeicherte Beleg.
+    const beleg = await ladeBestellung(orderId)
+    if (!beleg) {
       throw createError({
         statusCode: 404,
         message: 'Not found',
       })
     }
 
-    return order.result
+    return beleg
   } catch (error) {
     if (error instanceof H3Error) {
       // Maybe order doesn't exist on backend?

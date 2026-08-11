@@ -26,6 +26,57 @@ model Customer {
 
   loyaltyEvents  LoyaltyEvent[]
   discountCodes  DiscountCode[]
+  orders         Order[]
+}
+
+/// Beleg einer abgeschickten Bestellung.
+///
+/// essence hält Bestellungen nur im Arbeitsspeicher und verliert sie
+/// bei jedem Neustart. Diese Tabelle ist der bleibende Nachweis: was
+/// hier steht, übersteht einen Neustart, ein neues Deployment und den
+/// Ausfall von essence.
+///
+/// Der Beleg ist bewusst eine Momentaufnahme. Bezeichnungen und Preise
+/// stehen so darin, wie sie beim Bestellen galten — eine später
+/// geänderte Speisekarte darf einen alten Beleg nicht verfälschen.
+model Order {
+  /// Dieselbe Kennung, die essence vergeben hat
+  id        String   @id
+  createdAt DateTime @default(now())
+
+  /// Zustand laut essence: created, ready, delivered
+  status String
+
+  name  String
+  phone String
+  note  String?
+
+  /// selfPickup oder deliveryByCourier
+  deliveryMethod String
+  /// Bei Abholung nur die Kennung des Standorts, bei Lieferung die Anschrift
+  address        Json?
+
+  readyBy   String?
+  readyType String?
+
+  /// Gewählte Zahlungsart, z.B. cash oder card
+  paymentMethodId String
+  /// Rückgeld-Wunsch bei Barzahlung
+  changeFrom      Float?
+
+  totalPrice      Float
+  discountPercent Int?
+
+  /// Alle Positionen inklusive abgewählter Zutaten und bestellter
+  /// Extras, genau so wie sie an die Küche gehen
+  items Json
+
+  /// Nur gesetzt, wenn der Gast angemeldet bestellt hat
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  @@index([customerId])
+  @@index([createdAt])
 }
 
 /// Gutscheincode, der nach fünf Bestellungen erzeugt und per E-Mail
