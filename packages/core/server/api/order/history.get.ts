@@ -15,7 +15,9 @@ export default defineEventHandler<Promise<string[]>>(async (event) => {
   }
 
   const bestellungen = await prisma.order.findMany({
-    where: { customerId: user.customerId },
+    // Angefangene, aber nie bezahlte Online-Bestellungen liegen als
+    // Entwurf in der Tabelle. Die gehören nicht in die Historie.
+    where: { customerId: user.customerId, status: { not: 'draft' } },
     orderBy: { createdAt: 'desc' },
     select: { id: true },
   })

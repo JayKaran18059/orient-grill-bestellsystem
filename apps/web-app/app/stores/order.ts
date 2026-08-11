@@ -204,6 +204,19 @@ export const useOrderStore = defineStore('order', () => {
   /** Eingegebener Gutscheincode, wird beim Abschluss mitgeschickt */
   const discountCode = ref('')
 
+  /**
+   * Legt bei Stripe die Bezahlseite an und liefert ihre Adresse.
+   *
+   * Die Bestellung gilt danach noch nicht als aufgegeben — das
+   * entscheidet sich erst, wenn Stripe die Zahlung bestätigt hat.
+   */
+  async function starteOnlineZahlung(order: Partial<Order>) {
+    return await $fetch('/api/payment/checkout', {
+      method: 'POST',
+      body: { ...order, discountCode: discountCode.value || undefined },
+    })
+  }
+
   async function complete(order: Partial<Order>) {
     try {
       const data = await $fetch(
@@ -267,6 +280,7 @@ export const useOrderStore = defineStore('order', () => {
     change,
     changeItem,
     complete,
+    starteOnlineZahlung,
     get,
     formatPhone,
     validateAndSetPhone,

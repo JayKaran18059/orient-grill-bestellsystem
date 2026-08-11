@@ -1,9 +1,7 @@
 import type { GatewayCompleteOrderResponse } from '@nextorders/food-schema'
-import { prisma } from '@nextorders/db'
 import { OrderSchema } from '@nextorders/food-schema'
 import { createId } from '@paralleldrive/cuid2'
-import { entwerteDiscountCode, pruefeDiscountCode } from '../../utils/discountCode'
-import { awardStampForOrder } from '../../utils/loyalty'
+import { ermittleRechnung, istOnlineZahlung, schliesseBestellungAb } from '../../utils/orderCompletion'
 
 export default defineEventHandler<Promise<GatewayCompleteOrderResponse['result']>>(async (event) => {
   try {
@@ -39,48 +37,39 @@ export default defineEventHandler<Promise<GatewayCompleteOrderResponse['result']
       })
     }
 
+    // Online bezahlte Bestellungen dürfen nicht über diesen Weg
+    // hereinkommen — sonst ließe sich die Kasse umgehen, indem man
+    // einfach diese Adresse aufruft. Sie laufen über
+    // /api/payment/checkout und werden erst nach Stripes Bestätigung
+    // abgeschlossen.
+    const gewaehlteZahlungsart = data.paymentMethodId ?? order.result.paymentMethodId
+    if (await istOnlineZahlung(gewaehlteZahlungsart)) {
+      throw createError({
+        statusCode: 400,
+        message: 'payment-required',
+      })
+    }
+
     const { user } = await getUserSession(event)
 
     // Gutscheincode serverseitig prüfen — nie dem im Entwurf
     // gespeicherten discountPercent oder Client-Angaben vertrauen.
     // Der Browser schickt nur den eingetippten Code; wie viel Rabatt
     // dahintersteckt, entscheidet allein die Datenbank.
-    const itemsTotal = order.result.items.reduce((total, item) => total + item.totalPrice, 0)
-    const customer = user?.customerId
-      ? await prisma.customer.findUnique({ where: { id: user.customerId } })
-      : null
-
-    const eingegebenerCode = typeof body?.discountCode === 'string' ? body.discountCode : ''
-    const pruefung = customer && eingegebenerCode
-      ? await pruefeDiscountCode(customer.id, eingegebenerCode, itemsTotal)
-      : { ok: false as const }
-
-    if (eingegebenerCode && !pruefung.ok) {
-      throw createError({
-        statusCode: 400,
-        message: 'discount-code-invalid',
-      })
-    }
-
-    const completedOrder = await fetchApi({
-      type: 'completeOrder',
-      body: {
-        ...order.result,
-        ...data,
-        discountPercent: pruefung.ok ? pruefung.code.discountPercent : undefined,
-      },
+    const rechnung = await ermittleRechnung({
+      order: order.result,
+      customerId: user?.customerId,
+      eingegebenerCode: typeof body?.discountCode === 'string' ? body.discountCode : '',
     })
-    if (!completedOrder.result) {
-      throw createError({
-        statusCode: 404,
-        message: 'Order not found',
-      })
-    }
 
-    // Beleg schreiben, bevor irgendetwas anderes passiert. essence hält
-    // die Bestellung ab hier nur im Arbeitsspeicher — der nächste
-    // Neustart würde sie sonst spurlos verschlucken.
-    await speichereBestellung(completedOrder.result, user?.customerId)
+    const completedOrder = await schliesseBestellungAb({
+      order: order.result,
+      daten: data,
+      customerId: user?.customerId,
+      discountPercent: rechnung.discountPercent,
+      gutschein: rechnung.gutschein,
+      zahlung: { status: 'atPickup' },
+    })
 
     // Remove order from session and add it to completed orders.
     // Bestehende Felder (Login-Status: customerId/email/name) bleiben
@@ -90,27 +79,11 @@ export default defineEventHandler<Promise<GatewayCompleteOrderResponse['result']
         ...user,
         id: user?.id || createId(),
         orderId: undefined,
-        completedOrderIds: [...(user?.completedOrderIds || []), completedOrder.result.id],
+        completedOrderIds: [...(user?.completedOrderIds || []), completedOrder.id],
       },
     })
 
-    // Code entwerten, sobald die Bestellung wirklich durch ist.
-    // Schlägt das fehl (etwa weil derselbe Code parallel verbraucht
-    // wurde), bleibt die Bestellung gültig — der Gast hat schließlich
-    // bestellt, und ein doppelt gewährter Rabatt ist das kleinere
-    // Übel als eine verlorene Bestellung.
-    if (pruefung.ok) {
-      const entwertet = await entwerteDiscountCode(pruefung.code.id, completedOrder.result.id)
-      if (!entwertet) {
-        console.warn(`[Gutschein] Code ${pruefung.code.code} war bereits entwertet`)
-      }
-    }
-
-    if (user?.customerId) {
-      await awardStampForOrder(user.customerId, completedOrder.result.id, pruefung.ok)
-    }
-
-    return completedOrder.result
+    return completedOrder
   } catch (error) {
     throw errorResolver(error)
   }

@@ -67,6 +67,16 @@
 
           <div class="flex flex-col gap-4">
             <CheckoutInfoMessage
+              v-if="zahlungAbgebrochen"
+              icon="alert"
+              message="Die Zahlung wurde abgebrochen — es wurde nichts abgebucht. Du kannst es erneut versuchen oder bei Abholung bezahlen."
+            />
+            <CheckoutInfoMessage
+              v-if="zahlungFehler"
+              icon="alert"
+              :message="zahlungFehler"
+            />
+            <CheckoutInfoMessage
               v-if="orderStore?.deliveryMethod === 'deliveryByCourier'"
               icon="info"
               :message="$dict('web-app.checkout.info-shipping-price')"
@@ -138,19 +148,57 @@ const channelStore = useChannelStore()
 const orderStore = useOrderStore()
 const optionsStore = useOptionsStore()
 
+const route = useRoute()
+
+const zahlungsarten = computed(() => orderStore.deliveryMethod === 'deliveryByCourier'
+  ? channelStore.deliveryByCourier?.paymentMethods
+  : channelStore.selfPickup?.paymentMethods)
+
+/** Wird im Voraus bezahlt? Dann führt der Weg über die Stripe-Seite. */
+const zahltOnline = computed(
+  () => zahlungsarten.value?.find((art) => art.id === orderStore.paymentMethodId)?.type === 'online',
+)
+
+/** Der Gast hat auf der Bezahlseite abgebrochen und ist zurückgekommen. */
+const zahlungAbgebrochen = computed(() => route.query.zahlung === 'abgebrochen')
+
+const zahlungFehler = ref('')
+
 async function createOrder() {
   orderStore.isLoading = true
+  zahlungFehler.value = ''
+
+  const angaben = {
+    phone: orderStore.phone,
+    name: orderStore.name,
+    paymentMethodId: orderStore.paymentMethodId,
+    readyBy: orderStore.readyBy,
+    readyType: orderStore.readyType,
+    address: orderStore.address,
+    note: orderStore.note,
+  }
 
   try {
-    const completedOrder = await orderStore.complete({
-      phone: orderStore.phone,
-      name: orderStore.name,
-      paymentMethodId: orderStore.paymentMethodId,
-      readyBy: orderStore.readyBy,
-      readyType: orderStore.readyType,
-      address: orderStore.address,
-      note: orderStore.note,
-    })
+    if (zahltOnline.value) {
+      try {
+        const zahlung = await orderStore.starteOnlineZahlung(angaben)
+
+        if (zahlung?.url) {
+          // Stripe liegt außerhalb dieser Seite: echter Seitenwechsel,
+          // kein Wechsel innerhalb der Anwendung
+          await navigateTo(zahlung.url, { external: true })
+          return
+        }
+
+        zahlungFehler.value = 'Die Bezahlseite konnte nicht geöffnet werden. Bitte versuche es erneut oder wähle „Barzahlung bei Abholung".'
+      } catch {
+        zahlungFehler.value = 'Die Bezahlseite konnte nicht geöffnet werden. Bitte versuche es erneut oder wähle „Barzahlung bei Abholung".'
+      }
+
+      return
+    }
+
+    const completedOrder = await orderStore.complete(angaben)
 
     if (!completedOrder?.id) {
       await navigateTo('/')

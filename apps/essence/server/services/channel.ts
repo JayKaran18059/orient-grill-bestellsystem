@@ -28,6 +28,28 @@ const zahlungsarten: PaymentMethod[] = [
       },
     ],
   },
+  // Im Voraus bezahlen. Welche Verfahren dahinter erscheinen — Karte,
+  // Apple Pay, Google Pay, PayPal — stellt der Wirt bei Stripe ein,
+  // hier ist dafür nichts zu ändern.
+  //
+  // Ohne hinterlegten Stripe-Schlüssel blendet die Kasse diesen Eintrag
+  // aus und es bleibt beim Bezahlen vor Ort.
+  {
+    id: 'online',
+    type: 'online',
+    title: [
+      {
+        locale: 'de',
+        value: 'Jetzt online bezahlen',
+      },
+    ],
+    hint: [
+      {
+        locale: 'de',
+        value: 'Karte, Apple Pay, Google Pay oder PayPal',
+      },
+    ],
+  },
 ]
 
 // Öffnungszeiten laut Flyer:

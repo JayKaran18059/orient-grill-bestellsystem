@@ -4,17 +4,38 @@
       {{ $dict('web-app.checkout.payment-title') }}
     </h3>
 
-    <USelect
-      v-model="state.paymentMethodId"
-      :items="items"
-      :ui="{
-        leadingIcon: !!state.paymentMethodId && 'text-secondary',
-      }"
-      :placeholder="$dict('common.select')"
-      size="xl"
-      icon="lucide:banknote-arrow-up"
-      class="w-full"
-    />
+    <div class="flex flex-col gap-2">
+      <button
+        v-for="art in verfuegbareZahlungsarten"
+        :key="art.id"
+        type="button"
+        class="flex flex-row items-center gap-3 rounded-lg border px-4 py-3.5 text-left duration-200"
+        :class="state.paymentMethodId === art.id
+          ? 'border-secondary bg-elevated'
+          : 'border-default hover:border-muted'"
+        :aria-pressed="state.paymentMethodId === art.id"
+        @click="state.paymentMethodId = art.id"
+      >
+        <UIcon
+          :name="symbol(art)"
+          class="size-6 shrink-0"
+          :class="state.paymentMethodId === art.id ? 'text-secondary' : 'text-muted'"
+        />
+
+        <span class="flex flex-1 flex-col">
+          <span class="font-medium">{{ optionsStore.getLocaleValue(art.title) }}</span>
+          <span v-if="art.hint?.length" class="text-sm text-dimmed">
+            {{ optionsStore.getLocaleValue(art.hint) }}
+          </span>
+        </span>
+
+        <UIcon
+          v-if="state.paymentMethodId === art.id"
+          name="lucide:check"
+          class="size-5 shrink-0 text-secondary"
+        />
+      </button>
+    </div>
 
     <UFormField v-if="selectedPaymentMethod?.type === 'cash'" :label="$dict('web-app.checkout.change-label')">
       <UInputNumber
@@ -38,8 +59,31 @@ const optionsStore = useOptionsStore()
 const channelStore = useChannelStore()
 const orderStore = useOrderStore()
 
+const { public: { stripePublishableKey } } = useRuntimeConfig()
+
 const paymentMethods = computed(() => orderStore.deliveryMethod === 'deliveryByCourier' ? channelStore.deliveryByCourier?.paymentMethods : channelStore.selfPickup?.paymentMethods)
-const items = computed(() => paymentMethods.value?.map((p) => ({ label: optionsStore.getLocaleValue(p.title), value: p.id })))
+
+/**
+ * Online bezahlen wird nur angeboten, wenn Stripe eingerichtet ist.
+ * Sonst stünde in der Kasse eine Bezahlart, die den Gast beim Anklicken
+ * ins Leere laufen ließe.
+ */
+const verfuegbareZahlungsarten = computed(
+  () => (paymentMethods.value ?? []).filter((art) => art.type !== 'online' || !!stripePublishableKey),
+)
+
+function symbol(art: PaymentMethod): string {
+  switch (art.type) {
+    case 'cash':
+      return 'lucide:banknote'
+    case 'card':
+      return 'lucide:credit-card'
+    case 'online':
+      return 'lucide:smartphone-nfc'
+    default:
+      return 'lucide:wallet'
+  }
+}
 
 const state = ref<Pick<Order, 'paymentMethodId' | 'changeFrom'>>({
   paymentMethodId: orderStore.paymentMethodId ?? '',
@@ -50,6 +94,12 @@ const selectedPaymentMethod = ref<PaymentMethod | undefined>()
 
 watch(() => state.value.paymentMethodId, () => {
   selectedPaymentMethod.value = paymentMethods.value?.find((p) => p.id === state.value.paymentMethodId)
+
+  // Rückgeld ergibt nur bei Barzahlung einen Sinn. Bliebe der Wert
+  // stehen, ginge er als sinnlose Angabe mit der Bestellung raus.
+  if (selectedPaymentMethod.value?.type !== 'cash') {
+    state.value.changeFrom = undefined
+  }
 }, { immediate: true })
 
 watch(state, () => {

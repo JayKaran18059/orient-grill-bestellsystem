@@ -1,6 +1,9 @@
 import type { Order, OrderItem, OrderStatus, TimeType } from '@nextorders/food-schema'
 import { prisma } from '@nextorders/db'
 
+/** Entspricht dem Enum `PaymentStatus` im Datenbankschema */
+export type PaymentStatus = 'atPickup' | 'pending' | 'paid' | 'failed'
+
 /**
  * Schreibt den bleibenden Beleg einer abgeschickten Bestellung.
  *
@@ -14,28 +17,40 @@ import { prisma } from '@nextorders/db'
  * online im Voraus bezahlt wird, muss das umgekehrt werden** — dann
  * darf ohne gespeicherten Beleg kein Geld eingezogen werden.
  */
-export async function speichereBestellung(order: Order, customerId?: string): Promise<boolean> {
+export async function speichereBestellung(
+  order: Order,
+  customerId?: string,
+  zahlung?: { status: PaymentStatus, stripeSessionId?: string },
+): Promise<boolean> {
+  const felder = {
+    status: order.status,
+    name: order.name,
+    phone: order.phone,
+    note: order.note || null,
+    deliveryMethod: order.deliveryMethod,
+    // Prisma kennt die Anschrift nur als JSON, der genaue Aufbau
+    // hängt daran, ob abgeholt oder geliefert wird
+    address: order.address as unknown as object,
+    readyBy: order.readyBy || null,
+    readyType: order.readyType || null,
+    paymentMethodId: order.paymentMethodId,
+    changeFrom: order.changeFrom ?? null,
+    totalPrice: order.totalPrice,
+    discountPercent: order.discountPercent ?? null,
+    items: order.items as unknown as object[],
+    customerId: customerId ?? null,
+    paymentStatus: zahlung?.status ?? 'atPickup',
+    stripeSessionId: zahlung?.stripeSessionId ?? null,
+  }
+
   try {
-    await prisma.order.create({
-      data: {
-        id: order.id,
-        status: order.status,
-        name: order.name,
-        phone: order.phone,
-        note: order.note || null,
-        deliveryMethod: order.deliveryMethod,
-        // Prisma kennt die Anschrift nur als JSON, der genaue Aufbau
-        // hängt daran, ob abgeholt oder geliefert wird
-        address: order.address as unknown as object,
-        readyBy: order.readyBy || null,
-        readyType: order.readyType || null,
-        paymentMethodId: order.paymentMethodId,
-        changeFrom: order.changeFrom ?? null,
-        totalPrice: order.totalPrice,
-        discountPercent: order.discountPercent ?? null,
-        items: order.items as unknown as object[],
-        customerId: customerId ?? null,
-      },
+    // Bei Online-Zahlung wird der Beleg schon vor dem Bezahlen
+    // angelegt und danach fortgeschrieben — deshalb upsert und nicht
+    // create.
+    await prisma.order.upsert({
+      where: { id: order.id },
+      create: { id: order.id, ...felder },
+      update: felder,
     })
 
     return true
@@ -92,4 +107,46 @@ export async function gehoertBestellungZuKunde(orderId: string, customerId: stri
   })
 
   return !!treffer
+}
+
+/**
+ * Vermerkt eine Zahlung als bestätigt — und sagt, ob das schon vorher
+ * so war.
+ *
+ * Die Bestätigung trifft doppelt ein: einmal aus dem Browser, sobald
+ * der Gast fertig ist, und einmal per Webhook von Stripe. Nur der
+ * erste Aufruf darf die Bestellung wirklich auslösen, sonst bekäme die
+ * Küche sie zweimal. Die Bedingung `paymentStatus: 'pending'` im
+ * `updateMany` erledigt das in einem Rutsch: Wer nichts trifft, war
+ * nicht der Erste.
+ */
+export async function markiereBezahlt(stripeSessionId: string): Promise<{
+  bestellung: Order | null
+  warSchonBezahlt: boolean
+}> {
+  const treffer = await prisma.order.findUnique({
+    where: { stripeSessionId },
+    select: { id: true },
+  })
+  if (!treffer) {
+    return { bestellung: null, warSchonBezahlt: false }
+  }
+
+  const geaendert = await prisma.order.updateMany({
+    where: { stripeSessionId, paymentStatus: 'pending' },
+    data: { paymentStatus: 'paid', status: 'created' },
+  })
+
+  return {
+    bestellung: await ladeBestellung(treffer.id),
+    warSchonBezahlt: geaendert.count === 0,
+  }
+}
+
+/** Vermerkt eine abgebrochene oder abgelehnte Zahlung. */
+export async function markiereZahlungGescheitert(stripeSessionId: string): Promise<void> {
+  await prisma.order.updateMany({
+    where: { stripeSessionId, paymentStatus: 'pending' },
+    data: { paymentStatus: 'failed' },
+  })
 }
