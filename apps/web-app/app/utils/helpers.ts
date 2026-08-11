@@ -1,4 +1,19 @@
-import type { WeekDay, WeightUnit } from '@nextorders/food-schema'
+import type { OrderItem, WeekDay, WeightUnit } from '@nextorders/food-schema'
+
+/**
+ * Ist diese Warenkorbzeile genau so belegt wie gewünscht?
+ *
+ * Der Mengenzähler darf nur an einer Zeile hängen, die exakt der
+ * gerade eingestellten Zusammenstellung entspricht. Sonst würde das
+ * Plus einen Döner mit fremden Soßen hochzählen. Ohne Angabe ist die
+ * schlichte Variante ohne jede Anpassung gemeint.
+ */
+export function hatGenauDieseOptionen(zeile: OrderItem, optionIds: string[] = []): boolean {
+  const vorhanden = (zeile.selectedOptions ?? []).map((option) => option.optionId).sort()
+  const gewuenscht = optionIds.toSorted()
+
+  return vorhanden.length === gewuenscht.length && vorhanden.every((id, index) => id === gewuenscht[index])
+}
 
 export function getWeightLocalizedUnit<WeightUnitLiteral = string & object>(unit?: WeightUnit | WeightUnitLiteral): string {
   const { dict } = useDictionary()

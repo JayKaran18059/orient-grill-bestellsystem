@@ -29,12 +29,16 @@ test.describe('Cart', () => {
     await productCard.click()
     await page.getByRole('button', { name: /add to cart/i }).click()
 
-    // After adding, +/- buttons should replace "Add to cart"
-    const plusButton = page.locator('main').getByRole('button', { name: 'Plus' })
-    const minusButton = page.locator('main').getByRole('button', { name: 'Minus' })
+    // Quantity is changed in the cart, not on the product page: the
+    // "add to cart" button has to stay so the same dish can be ordered
+    // again with different options as its own line
+    const cart = page.locator('aside')
+    const plusButton = cart.getByRole('button', { name: 'Plus' })
+    const minusButton = cart.getByRole('button', { name: 'Minus' })
 
     await expect(plusButton).toBeVisible()
     await expect(minusButton).toBeVisible()
+    await expect(page.getByRole('button', { name: /add to cart/i })).toBeVisible()
 
     // Increment
     await plusButton.click()
@@ -43,7 +47,8 @@ test.describe('Cart', () => {
     await minusButton.click()
     await minusButton.click()
 
-    // "Add to cart" button should reappear
+    // Line is gone, so the counter disappears with it
+    await expect(plusButton).toBeHidden()
     await expect(page.getByRole('button', { name: /add to cart/i })).toBeVisible()
   })
 

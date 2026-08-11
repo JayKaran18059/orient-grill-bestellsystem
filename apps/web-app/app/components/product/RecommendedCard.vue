@@ -58,7 +58,9 @@ const menuStore = useMenuStore()
 const product = computed(() => menuStore.getProduct(recommendedProduct.productId))
 const productVariant = computed(() => menuStore.getProductVariant(recommendedProduct.productVariantId))
 
-const inCart = computed(() => orderStore.items.find(({ variantId }) => variantId === productVariant.value?.id))
+// Die Kachel bestellt ohne Anpassungen, also darf der Zähler auch nur
+// an einer Zeile ohne Anpassungen hängen
+const inCart = computed(() => orderStore.items.find((zeile) => zeile.variantId === productVariant.value?.id && hatGenauDieseOptionen(zeile)))
 
 const productUrl = computed(() => menuStore.getProductUrl(recommendedProduct.productId))
 </script>

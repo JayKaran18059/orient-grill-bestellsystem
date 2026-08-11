@@ -79,7 +79,10 @@ const orderStore = useOrderStore()
 const menuStore = useMenuStore()
 
 const withSingleVariant = computed<boolean>(() => product.variants.length === 1)
-const inCart = computed(() => withSingleVariant.value && orderStore.items.find(({ variantId }) => variantId === product.variants[0]?.id))
+// Der Zähler gehört nur an eine Zeile ohne Anpassungen. Liegt der
+// Döner mit Extras im Korb, bleibt hier der Knopf zur Produktseite —
+// von dort lässt sich einer mit anderen Soßen bestellen.
+const inCart = computed(() => withSingleVariant.value && orderStore.items.find((zeile) => zeile.variantId === product.variants[0]?.id && hatGenauDieseOptionen(zeile)))
 
 const smallestVariant = computed(() => product.variants[0])
 

@@ -67,27 +67,32 @@
             <div v-if="aufpreis > 0" class="text-sm text-dimmed">
               inkl. {{ optionsStore.formatCurrency(aufpreis) }} {{ optionsStore.currencySign }} für Extras
             </div>
+            <div v-if="gleicheZeile" class="text-sm text-dimmed">
+              schon {{ gleicheZeile.quantity }}× genau so im Warenkorb
+            </div>
           </div>
 
           <template v-if="orderStore.isLoading">
             <UIcon name="i-lucide-loader-circle" class="size-10 text-dimmed/25 motion-preset-spin" />
           </template>
-          <template v-else>
-            <CartLineCounter v-if="line" :line="line" />
-            <UButton
-              v-else-if="selectedVariantId"
-              size="xl"
-              variant="solid"
-              color="secondary"
-              icon="lucide:shopping-basket"
-              :label="$dict('web-app.cart.add-to-cart')"
-              :ui="{
-                leadingIcon: 'hidden md:block',
-              }"
-              class="md:px-6 font-medium"
-              @click="orderStore.add(selectedVariantId, selectedOptionIds)"
-            />
-          </template>
+          <!--
+            Der Knopf bleibt immer stehen, auch wenn das Gericht schon im
+            Korb liegt: nur so lässt sich ein zweiter Döner mit anderen
+            Soßen bestellen. Die Menge wird im Warenkorb geändert.
+          -->
+          <UButton
+            v-else-if="selectedVariantId"
+            size="xl"
+            variant="solid"
+            color="secondary"
+            icon="lucide:shopping-basket"
+            :label="$dict('web-app.cart.add-to-cart')"
+            :ui="{
+              leadingIcon: 'hidden md:block',
+            }"
+            class="md:px-6 font-medium"
+            @click="orderStore.add(selectedVariantId, selectedOptionIds)"
+          />
         </div>
       </div>
     </div>
@@ -197,11 +202,16 @@ const selectedVariant = computed(() => product.variants.find(({ id }) => id === 
 const weightValue = computed(() => selectedVariant.value?.weightValue)
 const weightUnit = computed(() => getWeightLocalizedUnit(selectedVariant.value?.weightUnit))
 
-const line = computed(() => orderStore.items.find((l) => l.variantId === selectedVariant.value?.id))
-
 // Zutaten zum Abwählen und Extras zum Dazubestellen
 const optionGroups = computed(() => product.optionGroups ?? [])
 const selectedOptionIds = ref<string[]>([])
+
+/**
+ * Die Warenkorbzeile, die exakt so belegt ist wie gerade eingestellt.
+ * Nur dafür darf "schon im Warenkorb" stehen — derselbe Döner mit
+ * anderen Soßen ist eine eigene Position.
+ */
+const gleicheZeile = computed(() => orderStore.items.find((zeile) => zeile.variantId === selectedVariant.value?.id && hatGenauDieseOptionen(zeile, selectedOptionIds.value)))
 
 /** Aufpreis der gewählten Extras — abgewählte Zutaten kosten nichts */
 const aufpreis = computed(() => {

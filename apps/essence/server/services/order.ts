@@ -60,6 +60,18 @@ function updateOrder(id: string, data: Partial<Order>): Order | undefined {
   return orders.get(id) as Order
 }
 
+/**
+ * Zwei Positionen sind nur dann dieselbe, wenn Zutaten und Extras
+ * exakt übereinstimmen. Ein Döner ohne Zwiebeln ist ein anderes
+ * Gericht als einer mit — die Reihenfolge der Kennungen ist egal.
+ */
+function hatGleicheOptionen(item: OrderItem, options: OrderItemOption[]): boolean {
+  const vorhanden = (item.selectedOptions ?? []).map((option) => option.optionId).sort()
+  const neu = options.map((option) => option.optionId).sort()
+
+  return vorhanden.length === neu.length && vorhanden.every((id, index) => id === neu[index])
+}
+
 function recalculateOrder(order: Order): Order {
   // For each
   order.items = order.items.map((item) => ({
@@ -229,12 +241,21 @@ export function handleAddOrderItem({ orderId, variantId, selectedOptionIds }: Ga
     })
   }
 
+  // Nur was exakt gleich belegt ist, landet in derselben Zeile. Weicht
+  // eine Soße ab, wird eine eigene Position angelegt — sonst bekäme die
+  // Küche die zweite Belegung nie zu sehen und der Aufpreis fiele weg.
+  const gleicheZeile = order.items.find((item) => item.variantId === variantId && hatGleicheOptionen(item, selectedOptions))
+
   const updatedOrder = updateOrder(orderId, {
     ...order,
-    items: [
-      ...order.items,
-      newItem,
-    ],
+    items: gleicheZeile
+      ? order.items.map((item) => item.id === gleicheZeile.id
+          ? { ...item, quantity: item.quantity + 1 }
+          : item)
+      : [
+          ...order.items,
+          newItem,
+        ],
   })
   if (!updatedOrder) {
     throw new Error('Order not found')
