@@ -205,13 +205,18 @@ export const useOrderStore = defineStore('order', () => {
   const discountCode = ref('')
 
   /**
-   * Legt bei Stripe die Bezahlseite an und liefert ihre Adresse.
+   * Legt bei Stripe die Zahlung an und liefert das `clientSecret`, mit
+   * dem das Bezahlfeld aufgebaut wird.
    *
-   * Die Bestellung gilt danach noch nicht als aufgegeben — das
+   * Ein zweiter Aufruf legt keine weitere Zahlung an, sondern zieht den
+   * Betrag der bestehenden nach — nötig, wenn sich der Warenkorb ändert,
+   * während das Feld schon steht.
+   *
+   * Die Bestellung gilt danach noch nicht als aufgegeben. Das
    * entscheidet sich erst, wenn Stripe die Zahlung bestätigt hat.
    */
   async function starteOnlineZahlung(order: Partial<Order>) {
-    return await $fetch('/api/payment/checkout', {
+    return await $fetch('/api/payment/intent', {
       method: 'POST',
       body: { ...order, discountCode: discountCode.value || undefined },
     })

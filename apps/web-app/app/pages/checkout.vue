@@ -38,6 +38,16 @@
             <FormOrderPayment />
           </div>
 
+          <!-- Erscheint erst, wenn online bezahlt werden soll: Apple Pay,
+               Google Pay und PayPal als eigene Schaltflächen, darunter
+               die Karteneingabe. -->
+          <div v-if="zahltOnline" class="motion-preset-slide-left-sm">
+            <CheckoutStripeBezahlfeld
+              ref="bezahlfeld"
+              @bezahlt="zurBestaetigung"
+            />
+          </div>
+
           <!-- Gutscheincode nur für Angemeldete: Codes hängen am
                Konto, ohne Anmeldung gäbe es nichts einzulösen. -->
           <CheckoutDiscountCode
@@ -154,51 +164,50 @@ const zahlungsarten = computed(() => orderStore.deliveryMethod === 'deliveryByCo
   ? channelStore.deliveryByCourier?.paymentMethods
   : channelStore.selfPickup?.paymentMethods)
 
-/** Wird im Voraus bezahlt? Dann führt der Weg über die Stripe-Seite. */
+/** Wird im Voraus bezahlt? Dann erscheint das Stripe-Bezahlfeld. */
 const zahltOnline = computed(
   () => zahlungsarten.value?.find((art) => art.id === orderStore.paymentMethodId)?.type === 'online',
 )
 
-/** Der Gast hat auf der Bezahlseite abgebrochen und ist zurückgekommen. */
+/** Der Gast hat die Zahlung abgebrochen und ist zurückgekommen. */
 const zahlungAbgebrochen = computed(() => route.query.zahlung === 'abgebrochen')
 
 const zahlungFehler = ref('')
+
+const bezahlfeld = useTemplateRef('bezahlfeld')
+
+async function zurBestaetigung(orderId: string) {
+  await orderStore.update()
+  await navigateTo(`/finish?id=${orderId}`)
+}
 
 async function createOrder() {
   orderStore.isLoading = true
   zahlungFehler.value = ''
 
-  const angaben = {
-    phone: orderStore.phone,
-    name: orderStore.name,
-    paymentMethodId: orderStore.paymentMethodId,
-    readyBy: orderStore.readyBy,
-    readyType: orderStore.readyType,
-    address: orderStore.address,
-    note: orderStore.note,
-  }
-
   try {
+    // Bei Online-Zahlung übernimmt das Bezahlfeld. Es meldet sich über
+    // "bezahlt" zurück, sobald das Geld bestätigt ist — vorher wird
+    // keine Bestellung ausgelöst.
     if (zahltOnline.value) {
-      try {
-        const zahlung = await orderStore.starteOnlineZahlung(angaben)
-
-        if (zahlung?.url) {
-          // Stripe liegt außerhalb dieser Seite: echter Seitenwechsel,
-          // kein Wechsel innerhalb der Anwendung
-          await navigateTo(zahlung.url, { external: true })
-          return
-        }
-
-        zahlungFehler.value = 'Die Bezahlseite konnte nicht geöffnet werden. Bitte versuche es erneut oder wähle „Barzahlung bei Abholung".'
-      } catch {
-        zahlungFehler.value = 'Die Bezahlseite konnte nicht geöffnet werden. Bitte versuche es erneut oder wähle „Barzahlung bei Abholung".'
+      if (!bezahlfeld.value) {
+        zahlungFehler.value = 'Das Bezahlfeld ist noch nicht bereit. Bitte einen Moment warten und erneut versuchen.'
+        return
       }
 
+      await bezahlfeld.value.bezahlen()
       return
     }
 
-    const completedOrder = await orderStore.complete(angaben)
+    const completedOrder = await orderStore.complete({
+      phone: orderStore.phone,
+      name: orderStore.name,
+      paymentMethodId: orderStore.paymentMethodId,
+      readyBy: orderStore.readyBy,
+      readyType: orderStore.readyType,
+      address: orderStore.address,
+      note: orderStore.note,
+    })
 
     if (!completedOrder?.id) {
       await navigateTo('/')

@@ -10,7 +10,7 @@ import { finalisiereZahlung } from '../../utils/orderCompletion'
  *
  * Im Stripe-Dashboard einzurichten unter Entwickler → Webhooks, mit der
  * Adresse `<Domain>/api/payment/webhook` und dem Ereignis
- * `checkout.session.completed`. Das dort angezeigte Geheimnis gehört in
+ * `payment_intent.succeeded`. Das dort angezeigte Geheimnis gehört in
  * `NUXT_STRIPE_WEBHOOK_SECRET`.
  */
 export default defineEventHandler(async (event) => {
@@ -40,16 +40,16 @@ export default defineEventHandler(async (event) => {
     data?: { object?: { id?: string } }
   }
 
-  const sitzungId = nachricht.data?.object?.id
+  const zahlungId = nachricht.data?.object?.id
 
-  if (nachricht.type === 'checkout.session.completed' && sitzungId) {
+  if (nachricht.type === 'payment_intent.succeeded' && zahlungId) {
     try {
-      await finalisiereZahlung(sitzungId)
+      await finalisiereZahlung(zahlungId)
     } catch (error) {
       // Mit einem Fehler antworten, damit Stripe es später erneut
       // versucht — die Bestellung soll nicht an einem kurzen Aussetzer
       // der Datenbank hängenbleiben.
-      console.error(`[Zahlung] Webhook für Sitzung ${sitzungId} fehlgeschlagen:`, error)
+      console.error(`[Zahlung] Webhook für Zahlung ${zahlungId} fehlgeschlagen:`, error)
 
       throw createError({
         statusCode: 500,

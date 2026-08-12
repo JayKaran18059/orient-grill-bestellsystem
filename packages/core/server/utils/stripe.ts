@@ -9,11 +9,13 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
  * prüfen — genügt die HTTP-Schnittstelle. Dieselbe Linie wie beim
  * E-Mail-Versand in `email.ts`.
  *
- * Bezahlt wird auf einer von Stripe gehosteten Seite („Checkout"), nicht
- * in einem eingebetteten Feld. Welche Methoden dort erscheinen — Karte,
- * Apple Pay, Google Pay, PayPal — stellt man im Stripe-Dashboard ein;
- * hier ist dafür nichts zu ändern. Das hält Kartendaten vollständig aus
- * diesem Projekt heraus.
+ * Bezahlt wird in einem Feld direkt in der Kasse. Apple Pay, Google Pay
+ * und PayPal erscheinen dort als eigene Schaltflächen, die Karte als
+ * Eingabefeld darunter. Die Kartennummer wandert dabei in einen von
+ * Stripe gestellten Rahmen und berührt dieses Projekt nie.
+ *
+ * Welche Methoden angeboten werden, stellt der Wirt im Stripe-Dashboard
+ * ein; hier ist dafür nichts zu ändern.
  *
  * **Ohne hinterlegten Schlüssel ist Online-Zahlung schlicht aus.** Die
  * Bezahlart verschwindet dann aus der Kasse und es bleibt beim Bezahlen
@@ -22,16 +24,14 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 
 const STRIPE_API = 'https://api.stripe.com/v1'
 
-/** Bezahlseite bei Stripe, reduziert auf das hier Gebrauchte */
-export interface StripeKasse {
+/** Zahlung bei Stripe, reduziert auf das hier Gebrauchte */
+export interface StripeZahlung {
   id: string
-  url?: string
-  /** 'paid', 'unpaid' oder 'no_payment_required' */
-  payment_status: string
-  /** 'open', 'complete' oder 'expired' */
+  /** 'succeeded', 'requires_payment_method', 'canceled' … */
   status: string
-  amount_total: number
+  amount: number
   currency: string
+  client_secret?: string
   metadata?: Record<string, string>
 }
 
@@ -77,36 +77,29 @@ async function stripeAnfrage<T>(pfad: string, daten?: Record<string, string>): P
 }
 
 /**
- * Legt die Bezahlseite an und gibt sie samt Adresse zurück.
+ * Legt eine Zahlung an und gibt sie samt `client_secret` zurück. Mit
+ * diesem Geheimnis baut der Browser das Bezahlfeld auf.
  *
  * Der Betrag kommt ausschließlich von hier, aus der Bestellung auf dem
  * Server. Ein aus dem Browser mitgeschickter Betrag wäre wertlos, weil
  * ihn jeder ändern könnte.
- *
- * Die ganze Bestellung wird als **eine** Position übergeben. Stripe
- * bräuchte sonst für jedes Extra eine eigene Zeile, und die Summe müsste
- * an zwei Stellen stimmen. Was genau bestellt wurde, steht ohnehin im
- * Beleg in der eigenen Datenbank.
  */
-export async function erstelleKassenSitzung(optionen: {
+export async function erstelleZahlung(optionen: {
   betrag: number
   orderId: string
   beschreibung: string
-  erfolgUrl: string
-  abbruchUrl: string
   /** Wird bei Stripe hinterlegt und beim Abschluss wieder ausgelesen */
   merkmale?: Record<string, string>
-}): Promise<StripeKasse> {
-  const { betrag, orderId, beschreibung, erfolgUrl, abbruchUrl, merkmale } = optionen
+}): Promise<StripeZahlung> {
+  const { betrag, orderId, beschreibung, merkmale } = optionen
 
   const daten: Record<string, string> = {
-    'mode': 'payment',
-    'success_url': erfolgUrl,
-    'cancel_url': abbruchUrl,
-    'line_items[0][quantity]': '1',
-    'line_items[0][price_data][currency]': 'eur',
-    'line_items[0][price_data][unit_amount]': String(inCent(betrag)),
-    'line_items[0][price_data][product_data][name]': beschreibung,
+    'amount': String(inCent(betrag)),
+    'currency': 'eur',
+    'description': beschreibung,
+    // Stripe entscheidet anhand der Einstellungen im Dashboard, welche
+    // Methoden das Bezahlfeld anbietet
+    'automatic_payment_methods[enabled]': 'true',
     'metadata[orderId]': orderId,
   }
 
@@ -116,12 +109,24 @@ export async function erstelleKassenSitzung(optionen: {
     }
   }
 
-  return stripeAnfrage<StripeKasse>('/checkout/sessions', daten)
+  return stripeAnfrage<StripeZahlung>('/payment_intents', daten)
 }
 
-/** Fragt bei Stripe nach, wie es um eine Bezahlseite steht. */
-export async function ladeKassenSitzung(sitzungId: string): Promise<StripeKasse> {
-  return stripeAnfrage<StripeKasse>(`/checkout/sessions/${encodeURIComponent(sitzungId)}`)
+/**
+ * Setzt den Betrag einer noch offenen Zahlung neu.
+ *
+ * Nötig, wenn der Gast den Warenkorb ändert, nachdem das Bezahlfeld
+ * schon aufgebaut ist. Ohne das würde der alte Betrag eingezogen.
+ */
+export async function aktualisiereZahlungsbetrag(zahlungId: string, betrag: number): Promise<StripeZahlung> {
+  return stripeAnfrage<StripeZahlung>(`/payment_intents/${encodeURIComponent(zahlungId)}`, {
+    amount: String(inCent(betrag)),
+  })
+}
+
+/** Fragt bei Stripe nach, wie es um eine Zahlung steht. */
+export async function ladeZahlung(zahlungId: string): Promise<StripeZahlung> {
+  return stripeAnfrage<StripeZahlung>(`/payment_intents/${encodeURIComponent(zahlungId)}`)
 }
 
 /**

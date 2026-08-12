@@ -20,16 +20,16 @@ export default defineEventHandler(async (event) => {
     }
 
     const body = await readBody(event)
-    const sitzungId = typeof body?.sitzungId === 'string' ? body.sitzungId : ''
+    const zahlungId = typeof body?.zahlungId === 'string' ? body.zahlungId : ''
 
-    if (!sitzungId) {
+    if (!zahlungId) {
       throw createError({
         statusCode: 400,
-        message: 'session-missing',
+        message: 'payment-missing',
       })
     }
 
-    const ergebnis = await finalisiereZahlung(sitzungId)
+    const ergebnis = await finalisiereZahlung(zahlungId)
 
     if (!ergebnis.bezahlt || !ergebnis.orderId) {
       throw createError({

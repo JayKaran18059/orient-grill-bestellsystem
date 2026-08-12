@@ -70,7 +70,7 @@ interface AbschlussOptionen {
   /** Bereits geprüfter Rabatt — nie ungeprüft aus dem Browser übernehmen */
   discountPercent?: number
   gutschein?: { id: string, code: string }
-  zahlung?: { status: PaymentStatus, stripeSessionId?: string }
+  zahlung?: { status: PaymentStatus, stripePaymentId?: string }
 }
 
 export async function schliesseBestellungAb(optionen: AbschlussOptionen): Promise<Order> {
@@ -130,25 +130,25 @@ export async function schliesseBestellungAb(optionen: AbschlussOptionen): Promis
  * Browser noch dem Inhalt der Webhook-Nachricht wird geglaubt, dass
  * bezahlt wurde.
  */
-export async function finalisiereZahlung(stripeSessionId: string): Promise<{
+export async function finalisiereZahlung(stripePaymentId: string): Promise<{
   bezahlt: boolean
   orderId?: string
 }> {
-  const sitzung = await ladeKassenSitzung(stripeSessionId)
+  const zahlung = await ladeZahlung(stripePaymentId)
 
-  if (sitzung.payment_status !== 'paid') {
-    if (sitzung.status === 'expired') {
-      await markiereZahlungGescheitert(stripeSessionId)
+  if (zahlung.status !== 'succeeded') {
+    if (zahlung.status === 'canceled') {
+      await markiereZahlungGescheitert(stripePaymentId)
     }
 
     return { bezahlt: false }
   }
 
-  const { bestellung, warSchonBezahlt } = await markiereBezahlt(stripeSessionId)
+  const { bestellung, warSchonBezahlt } = await markiereBezahlt(stripePaymentId)
   if (!bestellung) {
     // Geld eingenommen, aber kein Beleg dazu — das darf nicht
     // vorkommen und muss von Hand nachgesehen werden.
-    console.error(`[Zahlung] Bezahlte Stripe-Sitzung ${stripeSessionId} ohne zugehörigen Beleg`)
+    console.error(`[Zahlung] Bezahlte Stripe-Zahlung ${stripePaymentId} ohne zugehörigen Beleg`)
 
     return { bezahlt: true }
   }
@@ -157,9 +157,9 @@ export async function finalisiereZahlung(stripeSessionId: string): Promise<{
     return { bezahlt: true, orderId: bestellung.id }
   }
 
-  const customerId = sitzung.metadata?.customerId
-  const gutscheinId = sitzung.metadata?.gutscheinId
-  const gutscheinCode = sitzung.metadata?.gutscheinCode
+  const customerId = zahlung.metadata?.customerId
+  const gutscheinId = zahlung.metadata?.gutscheinId
+  const gutscheinCode = zahlung.metadata?.gutscheinCode
 
   // Die Bestellung an die Küche durchreichen. essence kennt sie nur
   // dann noch, wenn es zwischenzeitlich nicht neu gestartet wurde —

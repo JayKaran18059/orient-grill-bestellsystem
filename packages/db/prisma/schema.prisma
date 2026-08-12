@@ -76,10 +76,10 @@ model Order {
   changeFrom      Float?
 
   paymentStatus PaymentStatus @default(atPickup)
-  /// Kennung der Stripe-Bezahlseite. Eindeutig, damit dieselbe Zahlung
+  /// Kennung der Zahlung bei Stripe. Eindeutig, damit dieselbe Zahlung
   /// nicht zweimal abgeschlossen werden kann — die Bestätigung kommt
   /// sowohl aus dem Browser als auch per Webhook.
-  stripeSessionId String? @unique
+  stripePaymentId String? @unique
 
   totalPrice      Float
   discountPercent Int?

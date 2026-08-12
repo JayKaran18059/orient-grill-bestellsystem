@@ -20,7 +20,7 @@ export type PaymentStatus = 'atPickup' | 'pending' | 'paid' | 'failed'
 export async function speichereBestellung(
   order: Order,
   customerId?: string,
-  zahlung?: { status: PaymentStatus, stripeSessionId?: string },
+  zahlung?: { status: PaymentStatus, stripePaymentId?: string },
 ): Promise<boolean> {
   const felder = {
     status: order.status,
@@ -40,7 +40,7 @@ export async function speichereBestellung(
     items: order.items as unknown as object[],
     customerId: customerId ?? null,
     paymentStatus: zahlung?.status ?? 'atPickup',
-    stripeSessionId: zahlung?.stripeSessionId ?? null,
+    stripePaymentId: zahlung?.stripePaymentId ?? null,
   }
 
   try {
@@ -120,12 +120,12 @@ export async function gehoertBestellungZuKunde(orderId: string, customerId: stri
  * `updateMany` erledigt das in einem Rutsch: Wer nichts trifft, war
  * nicht der Erste.
  */
-export async function markiereBezahlt(stripeSessionId: string): Promise<{
+export async function markiereBezahlt(stripePaymentId: string): Promise<{
   bestellung: Order | null
   warSchonBezahlt: boolean
 }> {
   const treffer = await prisma.order.findUnique({
-    where: { stripeSessionId },
+    where: { stripePaymentId },
     select: { id: true },
   })
   if (!treffer) {
@@ -133,7 +133,7 @@ export async function markiereBezahlt(stripeSessionId: string): Promise<{
   }
 
   const geaendert = await prisma.order.updateMany({
-    where: { stripeSessionId, paymentStatus: 'pending' },
+    where: { stripePaymentId, paymentStatus: 'pending' },
     data: { paymentStatus: 'paid', status: 'created' },
   })
 
@@ -143,10 +143,25 @@ export async function markiereBezahlt(stripeSessionId: string): Promise<{
   }
 }
 
+/**
+ * Die noch offene Zahlung zu einer Bestellung, falls es eine gibt.
+ *
+ * Ändert der Gast den Warenkorb, während das Bezahlfeld schon steht,
+ * wird diese Zahlung im Betrag angepasst statt eine zweite anzulegen.
+ */
+export async function ladeOffeneZahlung(orderId: string): Promise<string | null> {
+  const treffer = await prisma.order.findFirst({
+    where: { id: orderId, paymentStatus: 'pending' },
+    select: { stripePaymentId: true },
+  })
+
+  return treffer?.stripePaymentId ?? null
+}
+
 /** Vermerkt eine abgebrochene oder abgelehnte Zahlung. */
-export async function markiereZahlungGescheitert(stripeSessionId: string): Promise<void> {
+export async function markiereZahlungGescheitert(stripePaymentId: string): Promise<void> {
   await prisma.order.updateMany({
-    where: { stripeSessionId, paymentStatus: 'pending' },
+    where: { stripePaymentId, paymentStatus: 'pending' },
     data: { paymentStatus: 'failed' },
   })
 }

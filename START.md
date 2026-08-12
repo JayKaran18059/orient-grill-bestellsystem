@@ -55,15 +55,23 @@ ganz normal weiter.
    `NUXT_STRIPE_SECRET_KEY` (sk_test_…).
 3. Unter **Entwickler → Webhooks** einen Endpunkt anlegen:
    Adresse `<deine Domain>/api/payment/webhook`, Ereignis
-   `checkout.session.completed`. Das dort angezeigte Geheimnis
+   `payment_intent.succeeded`. Das dort angezeigte Geheimnis
    (whsec_…) kommt nach `NUXT_STRIPE_WEBHOOK_SECRET`.
 4. Unter **Einstellungen → Zahlungsmethoden** einschalten, was
    angeboten werden soll: Karte, Apple Pay, Google Pay, PayPal. Was
-   dort aktiv ist, erscheint beim Bezahlen — im Code ist dafür nichts
+   dort aktiv ist, erscheint in der Kasse — im Code ist dafür nichts
    zu ändern.
 5. Für Apple Pay zusätzlich die Domain freischalten (Einstellungen →
    Zahlungsmethoden → Apple Pay). Das geht nur mit einer echten
    Domain, nicht mit localhost.
+
+**Was der Gast dann sieht:** Nach der Wahl von „Jetzt online bezahlen"
+erscheinen Apple Pay, Google Pay und PayPal als eigene Schaltflächen,
+darunter das Feld für die Karte. Apple Pay und Google Pay zeigt Stripe
+nur auf Geräten, die sie können — Apple Pay in Safari auf iPhone und
+Mac, Google Pay in Chrome. In einem anderen Browser bleibt der Bereich
+leer und es gibt nur Karte und PayPal. Das ist kein Fehler, sondern
+gilt bei jedem Shop so, auch bei Lieferando.
 
 **Zum Testen:** Kartennummer `4242 4242 4242 4242`, ein beliebiges
 Ablaufdatum in der Zukunft, beliebige Prüfziffer. Es wird nichts

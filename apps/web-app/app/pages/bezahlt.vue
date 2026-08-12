@@ -40,7 +40,9 @@
 
 <script setup lang="ts">
 /**
- * Landeplatz nach der Stripe-Bezahlseite.
+ * Landeplatz für Bezahlverfahren, die den Gast von der Seite führen —
+ * PayPal etwa. Karte, Apple Pay und Google Pay kommen hier nie an, die
+ * bleiben in der Kasse.
  *
  * Dass der Gast hier ankommt, beweist noch keine Zahlung — die Adresse
  * kann jeder aufrufen. Ob wirklich bezahlt wurde, fragt der Server bei
@@ -60,18 +62,26 @@ const meldung = ref('')
 const telefon = TELEFON
 
 onMounted(async () => {
-  const sitzungId = route.query.sitzung?.toString()
+  // Diese beiden Angaben hängt Stripe selbst an die Rückkehr-Adresse
+  const zahlungId = route.query.payment_intent?.toString()
+  const zustand = route.query.redirect_status?.toString()
 
-  if (!sitzungId) {
+  if (!zahlungId) {
     laeuft.value = false
     meldung.value = 'Uns fehlt die Kennung der Zahlung. Falls Geld abgebucht wurde, ruf bitte kurz an — wir klären das sofort.'
+    return
+  }
+
+  if (zustand && zustand !== 'succeeded') {
+    laeuft.value = false
+    meldung.value = 'Die Zahlung wurde nicht abgeschlossen — es wurde nichts abgebucht. Du kannst es in der Kasse erneut versuchen.'
     return
   }
 
   try {
     const ergebnis = await $fetch('/api/payment/confirm', {
       method: 'POST',
-      body: { sitzungId },
+      body: { zahlungId },
     })
 
     // Der Warenkorb ist serverseitig schon geleert, der Speicher im
